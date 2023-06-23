@@ -1,15 +1,30 @@
 <#
+.SYNOPSIS
 This is a remediation script originally made as an Intune Proactive Remediation to clean up "orphaned" user folders on a Windows system. 
-These folders may exist under C:\Users and are left over when a user account is deleted but their profile folder is not removed. 
-The script identifies these folders by comparing the folders in C:\Users to the list of user profiles in the Windows Registry. 
+
+.DESCRIPTION
+This script looks for folders in C:\Users that were left over when a user account was deleted. 
+It identifies orphaned folders by comparing the folders in C:\Users to the list of user profiles in the Windows Registry. 
 If the script finds any folders that do not have a corresponding user profile, it attempts to delete them.
+If it fails to delete them because of permissions issues, it will continue trying a few ways before moving the to the Cleanup folder it creates.
+
+.NOTES
+When checking C:\Users, the script ignores the Public folder and the Cleanup folder it creates
+
+This script was created for use with my organizations resources and expects certain folder structures and file names. Update the variables at the top of the script as necessary to suit your needs.
+I prefer an org folder in both ProgramData and AppData so things can stay organized whether running things in the System or User context.
+
+.AUTHOR
+Timothy Alexander
+https://github.com/taalexander0614/CtrlAltUpgrade
 #>
 
 # Set initial variables 
+$org = "ORG"
 $ScriptName = "Orphaned User Folders"
 $leftoverCleanup = "C:\Users\Cleanup"
-$ORGFolder = "C:\Windows\ORG Resources"
-$logFolder = "$ORGFolder\Logs"  
+$orgFolder = "$env:PROGRAMDATA\$org"
+$logFolder = "$orgFolder\Logs"  
 $logFile = "$ScriptName.log"
 
 # Create necessary paths if they do not exist
@@ -48,7 +63,7 @@ $folders = Get-ChildItem -Path "C:\Users" -Directory
 
 $nonMatchingFolders = @()
 foreach ($folder in $folders) {
-    if ($remainingprofilenames -notcontains $folder.Name -and $folder.Name -notin "Public", "Cleanup", "visio") {
+    if ($remainingprofilenames -notcontains $folder.Name -and $folder.Name -notin "Public", "Cleanup") {
         $nonMatchingFolders += $folder
     }
 }
@@ -65,7 +80,7 @@ if (![string]::IsNullOrEmpty($nonMatchingFolders)) {
             Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Failed to delete $($nonMatchingFolder.FullName)"
         }
         Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Checking if $($nonMatchingFolder.FullName) still exists."
-# If folder was not deleted, assign ownership and full control access to the System account before recursively deleting the folder while silently continuing on error                    
+        # If folder was not deleted, assign ownership and full control access to the System account before recursively deleting the folder while silently continuing on error                    
         if (Test-Path $nonMatchingFolder.FullName -PathType Container) {
             Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") $($nonMatchingFolder.FullName) still exists, so attempting to take ownership."
             Try {
@@ -89,10 +104,12 @@ if (![string]::IsNullOrEmpty($nonMatchingFolders)) {
                 Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Failed to delete $($nonMatchingFolder.FullName)"
             }
             Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Checking if $($nonMatchingFolder.FullName) still exists."
-# Check to see if the folder still exists so a more thorough attempt at deletion can be made if needed
+
+            # Check to see if the folder still exists so a more thorough attempt at deletion can be made if needed
             if (Test-Path $nonMatchingFolder.FullName -PathType Container) {
                 Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") $($nonMatchingFolder.FullName) still exists, so proceeding to delete childitems."
-# Put all remaining child files individually into an array and loop through to take the same attept to chenge permissions and delete                   
+
+                # Put all remaining child files individually into an array and loop through to take the same attept to chenge permissions and delete                   
                 $files = Get-ChildItem $nonMatchingFolder.FullName -File -Recurse -Force
                 foreach ($file in $files) {
                     if (Test-Path $file.FullName) {
@@ -102,7 +119,7 @@ if (![string]::IsNullOrEmpty($nonMatchingFolders)) {
                         Catch {
                             Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Failed to remove $folder child file $file"
                             Try { 
-# Retrieve the Access Control List (ACL) for the directory
+                                # Retrieve the Access Control List (ACL) for the directory
                                 $directoryPath = $file.FullName
                                 $Acl = Get-Acl $directoryPath
                                 $Ar = New-Object System.Security.AccessControl.FileSystemAccessRule("System","FullControl","Allow")
@@ -118,7 +135,7 @@ if (![string]::IsNullOrEmpty($nonMatchingFolders)) {
                         }
                     }   
                 }
-# Put all remaining child folders individually into an array and loop through to make the same attempt to chenge permissions and delete 
+                # Put all remaining child folders individually into an array and loop through to make the same attempt to chenge permissions and delete 
                 $containers = Get-ChildItem $nonMatchingFolder.FullName -Directory -Recurse -Force
                 foreach ($container in $containers) {
                     if (Test-Path $container.FullName) {
@@ -152,7 +169,7 @@ if (![string]::IsNullOrEmpty($nonMatchingFolders)) {
                 }
                 if (Test-Path $nonMatchingFolder.FullName -PathType Container) {
                     Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") $($nonMatchingFolder.FullName) still exists; attempting to move to $leftoverCleanup."
-# If folder still exists, move to $destnationFolder to clean up C:\Users and potentially prevent more duplication 
+                    # If folder still exists, move to $destnationFolder to clean up C:\Users and potentially prevent more duplication 
                     Try {
                         Move-Item -Path $nonMatchingFolder.FullName -Destination $leftoverCleanup
                         Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Successfully moved $($nonMatchingFolder.FullName) to $leftoverCleanup"
