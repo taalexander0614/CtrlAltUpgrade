@@ -24,7 +24,7 @@ https://github.com/taalexander0614/CtrlAltUpgrade
 
 
 # Define the Security Group
-$ShadowGroup = "CN=Office 365 Device License,OU=Schools,DC=ORG,DC=Local"
+$securityGroup = "CN=Office 365 Device License,OU=Schools,DC=ORG,DC=Local"
 
 # Define the target: 'User' or 'Computer'
 $target = 'Computer'
@@ -42,7 +42,7 @@ foreach ($baseOU in $baseOUs) {
 }
 
 # Remove any members of security group which are no longer in the OUs we targeted
-$groupMembers = Get-ADGroupMember -Identity $ShadowGroup
+$groupMembers = Get-ADGroupMember -Identity $securityGroup
 
 foreach ($member in $groupMembers) {
     $memberInOU = $false
@@ -53,7 +53,7 @@ foreach ($member in $groupMembers) {
         }
     }
     if (-not $memberInOU) {
-        Remove-ADPrincipalGroupMembership -Identity $member -MemberOf $ShadowGroup -Confirm:$false
+        Remove-ADPrincipalGroupMembership -Identity $member -MemberOf $securityGroup -Confirm:$false
     }
 }
 
@@ -61,17 +61,17 @@ foreach ($member in $groupMembers) {
 foreach ($ou in $OUs) {
     if ($target -eq 'User') {
         # Get all users within the current OU that are not already a member of the ShadowGroup
-        $targetsToAdd = Get-ADUser -SearchBase $ou -SearchScope OneLevel -LDAPFilter "(!memberOf=$ShadowGroup)"
+        $targetsToAdd = Get-ADUser -SearchBase $ou -SearchScope OneLevel -LDAPFilter "(!memberOf=$securityGroup)"
     } else {
         # Get all computers within the current OU that are not already a member of the ShadowGroup
-        $targetsToAdd = Get-ADComputer -SearchBase $ou -SearchScope OneLevel -LDAPFilter "(!memberOf=$ShadowGroup)"
+        $targetsToAdd = Get-ADComputer -SearchBase $ou -SearchScope OneLevel -LDAPFilter "(!memberOf=$securityGroup)"
     }
 
     # For each of those targets
     foreach ($targetToAdd in $targetsToAdd) {
         # Add the target to the ShadowGroup
-        Add-ADPrincipalGroupMembership -Identity $targetToAdd -MemberOf $ShadowGroup
-        Write-Output "Added $targetToAdd to $ShadowGroup"
+        Add-ADPrincipalGroupMembership -Identity $targetToAdd -MemberOf $securityGroup
+        Write-Output "Added $targetToAdd to $securityGroup"
     }
 }
 

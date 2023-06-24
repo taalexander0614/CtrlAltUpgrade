@@ -26,6 +26,10 @@ None. This script does not produce any output.
 .EXAMPLE
 PS> .\script.ps1 -AppName "ETHZurich.SafeExamBrowser" -Action "Install"
 
+.Notes
+This script was created for use with my organizations resources and expects certain folder structures and file names. Update the variables at the top of the script as necessary to suit your needs.
+I prefer an org folder in both ProgramData and AppData so things can stay organized whether running things in the System or User context.
+
 .AUTHOR
 Timothy Alexander
 https://github.com/taalexander0614/CtrlAltUpgrade

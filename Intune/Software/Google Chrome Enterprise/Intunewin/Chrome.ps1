@@ -1,11 +1,51 @@
+<#
+.SYNOPSIS
+This script is used for installing or uninstalling Google Chrome in an organization's environment.
+
+.DESCRIPTION
+The script first checks if the log directory exists, and if not, it creates the directory. It then logs messages to a log file.
+
+The script operates in two modes: "Install" and "Uninstall".
+
+In "Uninstall" mode, the script checks if Google Chrome is installed. If it is, the script attempts to uninstall Google Chrome, logging the process along the way. 
+
+In "Install" mode, the script downloads the Google Chrome MSI installer from a specified URL, logs the download process, and then installs Google Chrome. If a previous installer is detected, it is removed before the new installer is downloaded. After installation, the script checks for a Google Chrome desktop shortcut and deletes it if it's found. It then cleans up the installer files.
+
+.PARAMETERS
+$action: The operation to perform. Can be "Install" or "Uninstall".
+
+.INPUTS
+The script does not accept any inputs.
+
+.OUTPUTS
+The script does not return any outputs. It writes log messages to a file during the installation or uninstallation process.
+
+.EXAMPLE
+PS> .\Chrome.ps1 -action "Install"
+PS> .\Chrome.ps1 -action "Uninstall"
+
+.NOTES
+This script was created for use with my organizations resources and expects certain folder structures and file names. Update the variables at the top of the script as necessary to suit your needs.
+I prefer an org folder in both ProgramData and AppData so things can stay organized whether running things in the System or User context.
+Tested on Windows 10 with PowerShell 5.1.
+
+.AUTHOR
+Timothy Alexander
+https://github.com/taalexander0614/CtrlAltUpgrade
+#>
+
 param(
     [Parameter(Mandatory=$true)]
     [ValidateSet("Install","Uninstall")]
     [string]$Action
 )
 
+$org = "RCS"
+$ChromeUrl = "https://dl.google.com/chrome/install/googlechromestandaloneenterprise64.msi"
+
 # Define the log file path
-$logDir = "$env:ProgramData\RCS\Logs"
+$orgFolder = "$env:ProgramData\$org"
+$logDir = "$orgFolder\Logs"
 $appLogDir = "$logDir\Apps"
 $logFilePath = "$appLogDir\Chrome.log"
 
@@ -49,7 +89,6 @@ if ($action -eq "Uninstall"){
 if ($action -eq "Install") {
     LogWrite "Start Install Script"
     # Define the URL and output file path
-    $url = "https://dl.google.com/chrome/install/googlechromestandaloneenterprise64.msi"
     $output = Join-Path -Path $env:TEMP -ChildPath "chrome.msi"
     if (Test-Path -Path $output) {
         LogWrite "Previous installer detected, attempting to remove"
@@ -62,9 +101,9 @@ if ($action -eq "Install") {
         }
     }
     # Download the file
-    LogWrite "Downloading installer from $url"
+    LogWrite "Downloading installer from $ChromeUrl"
     Try {
-        Invoke-WebRequest -Uri $url -OutFile $output
+        Invoke-WebRequest -Uri $ChromeUrl -OutFile $output
         LogWrite "Successfully downloaded installer"
     }
     Catch {
