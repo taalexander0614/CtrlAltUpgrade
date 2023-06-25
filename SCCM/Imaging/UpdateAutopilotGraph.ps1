@@ -65,6 +65,10 @@ $body = @{
 $response = Invoke-RestMethod -Uri $tokenUrl -Method Post -Body $body
 $token = $response.access_token
 
+# Get Serial Number
+$win32BIOS = (get-wmiobject -Class win32_bios)
+$serial = $win32BIOS.SerialNumber
+
 # Call the Graph API to get the device
 $apiUrl = "https://graph.microsoft.com/beta/deviceManagement/windowsAutopilotDeviceIdentities"
 $headers = @{
