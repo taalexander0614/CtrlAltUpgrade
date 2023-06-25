@@ -40,7 +40,7 @@ param(
     [string]$Action
 )
 
-$org = "RCS"
+$org = "ORG"
 $ChromeUrl = "https://dl.google.com/chrome/install/googlechromestandaloneenterprise64.msi"
 
 # Define the log file path
