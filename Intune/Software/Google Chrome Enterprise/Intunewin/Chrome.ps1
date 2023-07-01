@@ -42,7 +42,7 @@ param(
 
 # Org specific info and script name which is used for the log file
 $Global:org = "ORG"
-$Global:scriptName = "Intune Device Cleanup"
+$Global:scriptName = "Chrome Enterprise Online Installer"
 $ChromeUrl = "https://dl.google.com/chrome/install/googlechromestandaloneenterprise64.msi"
 
 
