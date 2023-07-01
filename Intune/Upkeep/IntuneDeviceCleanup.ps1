@@ -102,8 +102,6 @@ Function Write-Log {
     $streamWriter.Close()
 }
 
-Write-Log -Level "INFO" -Message "====================== Start $scriptName Log ======================"
-
 # Function to get the access token using app credentials
 function Get-AccessToken {
     Write-Log -Level "INFO" -Message "Obtaining Auth Token"
@@ -124,8 +122,8 @@ function Get-AccessToken {
     return $tokenResponse.access_token
 }
 
-# Start the log
-Write-Log -Level "INFO" -Message "====================== Start Log ======================"
+# Start Log
+Write-Log -Level "INFO" -Message "====================== Start $scriptName Log ======================"
 
 # Get the auth token
 $accessToken = Get-AccessToken -TenantId $tenantID -AppId $appID -ClientSecret $secret
