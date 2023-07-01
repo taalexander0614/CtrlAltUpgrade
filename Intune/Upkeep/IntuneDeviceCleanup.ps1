@@ -49,7 +49,6 @@ https://github.com/taalexander0614/CtrlAltUpgrade
 # Org specific info and script name which is used for the log file
 $Global:org = "ORG"
 $Global:scriptName = "Intune Device Cleanup"
-$Global:orgFolder = "$Home\AppData\Roaming\$org"
 
 # Variables needed for Graph API interaction
 $tenantID = ""
