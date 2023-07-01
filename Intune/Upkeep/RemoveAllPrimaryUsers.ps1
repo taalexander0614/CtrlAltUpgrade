@@ -59,22 +59,43 @@ $betaManagedDevicesUrl = "$baseGraphURL/$managedDevices"
 Function Write-Log {
     param(
         [Parameter(Mandatory=$true)]
-        [ValidateSet("DEBUG", "INFO", "WARNING", "ERROR")]
-        [string]$Level,       
+        [ValidateSet("DEBUG", "INFO", "WARN", "ERROR")]
+        [string]$Level,
         [Parameter(Mandatory=$true)]
         [string]$Message
     )
-    $orgFolder = "$env:PROGRAMDATA\$org"
+    # Determine whether the script is running in user or system context
+    $userName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    if ($userName -eq "NT AUTHORITY\SYSTEM") {
+        $orgFolder = "$env:ProgramData\$org"
+    }
+    else {
+        $orgFolder = "$Home\AppData\Roaming\$org"
+    }
+
     $logFolder = "$orgFolder\Logs"
     $logFile = "$logFolder\$scriptName.log"
     # Create organization folder and log if they don't exist
-    If(!(Test-Path $orgFolder)){New-Item $orgFolder -ItemType Directory -Force | Out-Null}
-    If(!(Test-Path $logFolder)){New-Item $logFolder -ItemType Directory -Force | Out-Null}
-    If(!(Test-Path $logFile)){New-Item $logFile -ItemType File -Force | Out-Null}
+    try {
+        if (!(Test-Path $orgFolder)) {
+            New-Item $orgFolder -ItemType Directory -Force | Out-Null
+        }
+        if (!(Test-Path $logFolder)) {
+            New-Item $logFolder -ItemType Directory -Force | Out-Null
+        }
+        if (!(Test-Path $logFile)) {
+            New-Item $logFile -ItemType File -Force | Out-Null
+        }
+    }
+    catch {
+        Write-Output "Failed to create log directory or file: $_"
+    }
     # Set log date stamp
     $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $LogEntry = "$Timestamp [$Level] $Message"
-    Add-Content -Path $logFile -Value $logEntry
+    $streamWriter = New-Object System.IO.StreamWriter($logFile, $true)
+    $streamWriter.WriteLine($LogEntry)
+    $streamWriter.Close()
 }
 
 # Function to get the access token using app credentials
@@ -97,8 +118,8 @@ function Get-AccessToken {
     return $tokenResponse.access_token
 }
 
-# Start the log
-Write-Log -Level "INFO" -Message "====================== Start Log ======================"
+# Start Log
+Write-Log -Level "INFO" -Message "====================== Start $scriptName Log ======================"
 
 # Get the auth token
 $accessToken = Get-AccessToken -TenantId $tenantID -AppId $appID -ClientSecret $secret
