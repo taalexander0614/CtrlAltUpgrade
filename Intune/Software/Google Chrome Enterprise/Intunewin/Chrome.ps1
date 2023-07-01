@@ -40,109 +40,132 @@ param(
     [string]$Action
 )
 
-$org = "ORG"
+# Org specific info and script name which is used for the log file
+$Global:org = "ORG"
+$Global:scriptName = "Intune Device Cleanup"
 $ChromeUrl = "https://dl.google.com/chrome/install/googlechromestandaloneenterprise64.msi"
 
-# Define the log file path
-$orgFolder = "$env:ProgramData\$org"
-$logDir = "$orgFolder\Logs"
-$appLogDir = "$logDir\Apps"
-$logFilePath = "$appLogDir\Chrome.log"
 
 # Function to log messages
-function LogWrite
-{
-    param([string]$logstring)
+Function Write-Log {
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateSet("DEBUG", "INFO", "WARN", "ERROR")]
+        [string]$Level,
+        [Parameter(Mandatory=$true)]
+        [string]$Message
+    )
+    # Determine whether the script is running in user or system context
+    $userName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    if ($userName -eq "NT AUTHORITY\SYSTEM") {
+        $orgFolder = "$env:ProgramData\$org"
+    }
+    else {
+        $orgFolder = "$Home\AppData\Roaming\$org"
+    }
 
-    Add-content $logFilePath -value "$(Get-Date) - $logstring"
-}
-
-# Check if log directory exists, if not, create it
-if (-not (Test-Path -Path $logDir)) {
-    New-Item -ItemType Directory -Force -Path $logDir
-}
-if (-not (Test-Path -Path $appLogDir)) {
-    New-Item -ItemType Directory -Force -Path $appLogDir
-}
-if (-not (Test-Path -Path $logFilePath)){
-    New-Item -Path $appLogDir -Name Chrome.log -ItemType File
-}
-
-if ($action -eq "Uninstall"){
-    LogWrite "Start Uninstall Script"
+    $logFolder = "$orgFolder\Logs"
+    $logFile = "$logFolder\$scriptName.log"
+    # Create organization folder and log if they don't exist
     try {
-        $app = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object { $_.DisplayName -like "Google Chrome*" }
-        if ($app) {
-            LogWrite "Found Google Chrome. Attempting to uninstall..."
-            Start-Process -FilePath "cmd.exe" -ArgumentList "/C", $app.UninstallString -Wait -NoNewWindow
-            LogWrite "Google Chrome has been uninstalled."
-        } 
-        else {
-            LogWrite "Google Chrome is not installed."
+        if (!(Test-Path $orgFolder)) {
+            New-Item $orgFolder -ItemType Directory -Force | Out-Null
+        }
+        if (!(Test-Path $logFolder)) {
+            New-Item $logFolder -ItemType Directory -Force | Out-Null
+        }
+        if (!(Test-Path $logFile)) {
+            New-Item $logFile -ItemType File -Force | Out-Null
         }
     }
     catch {
-        LogWrite "An error occurred: $_"
+        Write-Output "Failed to create log directory or file: $_"
+    }
+    # Set log date stamp
+    $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $LogEntry = "$Timestamp [$Level] $Message"
+    $streamWriter = New-Object System.IO.StreamWriter($logFile, $true)
+    $streamWriter.WriteLine($LogEntry)
+    $streamWriter.Close()
+}
+
+Write-Log -Level "INFO" -Message "====================== Start $scriptName Log ======================"
+
+if ($action -eq "Uninstall"){
+    Write-Log -Level "INFO" -Message "Start Uninstall Script"
+    try {
+        $app = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object { $_.DisplayName -like "Google Chrome*" }
+        if ($app) {
+            Write-Log -Level "INFO" -Message "Found Google Chrome. Attempting to uninstall..."
+            Start-Process -FilePath "cmd.exe" -ArgumentList "/C", $app.UninstallString -Wait -NoNewWindow
+            Write-Log -Level "INFO" -Message "Google Chrome has been uninstalled."
+        } 
+        else {
+            Write-Log -Level "INFO" -Message "Google Chrome is not installed."
+        }
+    }
+    catch {
+        Write-Log -Level "ERROR" -Message "An error occurred: $_"
         exit 1
     }
 }
 if ($action -eq "Install") {
-    LogWrite "Start Install Script"
+    Write-Log -Level "INFO" -Message "Start Install Script"
     # Define the URL and output file path
     $output = Join-Path -Path $env:TEMP -ChildPath "chrome.msi"
     if (Test-Path -Path $output) {
-        LogWrite "Previous installer detected, attempting to remove"
+        Write-Log -Level "INFO" -Message "Previous installer detected, attempting to remove"
         Try {
         Remove-Item -Path $output -Force
-        LogWrite "Successfully removed"
+        Write-Log -Level "INFO" -Message "Successfully removed"
         }
         Catch {
-            LogWrite "Failed to remove: $_"
+            Write-Log -Level "ERROR" -Message "Failed to remove: $_"
         }
     }
     # Download the file
-    LogWrite "Downloading installer from $ChromeUrl"
+    Write-Log -Level "INFO" -Message "Downloading installer from $ChromeUrl"
     Try {
         Invoke-WebRequest -Uri $ChromeUrl -OutFile $output
-        LogWrite "Successfully downloaded installer"
+        Write-Log -Level "INFO" -Message "Successfully downloaded installer"
     }
     Catch {
-        LogWrite "Error downloading installer: $_"
+        Write-Log -Level "ERROR" -Message "Error downloading installer: $_"
         Exit 1
     }
 
     # Install the MSI
     Try {
-        LogWrite "Executing installer: $output"
+        Write-Log -Level "INFO" -Message "Executing installer: $output"
         Start-Process -FilePath "msiexec.exe" -ArgumentList "/i", $output, "/qn" -Wait
-        LogWrite "Successfully installed, checking for desktop shortcut"
+        Write-Log -Level "INFO" -Message "Successfully installed, checking for desktop shortcut"
         # Checking for desktop shortcut
         $publicDesktopPath = [System.Environment]::GetFolderPath('CommonDesktopDirectory')
         $shortcutPath = Join-Path -Path $publicDesktopPath -ChildPath "Google Chrome.lnk"
         if (Test-Path -Path $shortcutPath) {
-            LogWrite "Shortcut Found. Deleting..."
+            Write-Log -Level "INFO" -Message "Shortcut Found. Deleting..."
             Try {
                 Remove-Item -Path $shortcutPath -Force
-                LogWrite "Shortcut deleted successfully."
+                Write-Log -Level "INFO" -Message "Shortcut deleted successfully."
             }
             Catch {
-                LogWrite "Failed to remove shortcut :$_"
+                Write-Log -Level "ERROR" -Message "Failed to remove shortcut :$_"
             }
         }
         else {
-            LogWrite "No shortcut found on the public desktop."
+            Write-Log -Level "INFO" -Message "No shortcut found on the public desktop."
         }
     }
     Catch {
-        LogWrite "Error executing installer: $_"
+        Write-Log -Level "ERROR" -Message "Error executing installer: $_"
     }
     # Delete the MSI
     Try {
-        LogWrite "Cleaning up installer files"
+        Write-Log -Level "INFO" -Message "Cleaning up installer files"
         Remove-Item -Path $output
     }
     Catch {
-        LogWrite "Error cleaning up files: $_"
+        Write-Log -Level "ERROR" -Message "Error cleaning up files: $_"
     }
 }
 
