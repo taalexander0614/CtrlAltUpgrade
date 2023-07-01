@@ -20,47 +20,69 @@ Timothy Alexander
 https://github.com/taalexander0614/CtrlAltUpgrade
 #>
 
-$org = "RCS"
-
-# Define the log file path
-$orgFolder = "$env:ProgramData\$org"
-$logDir = "$orgFolder\Logs"
-$appLogDir = "$logDir\Apps"
-$logFilePath = "$appLogDir\Chrome.log"
+# Org specific info and script name which is used for the log file
+$Global:org = "ORG"
+$Global:scriptName = "Chrome Detection Script"
 
 # Function to log messages
-function LogWrite
-{
-    param([string]$logstring)
+Function Write-Log {
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateSet("DEBUG", "INFO", "WARN", "ERROR")]
+        [string]$Level,
+        [Parameter(Mandatory=$true)]
+        [string]$Message
+    )
+    # Determine whether the script is running in user or system context
+    $userName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    if ($userName -eq "NT AUTHORITY\SYSTEM") {
+        $orgFolder = "$env:ProgramData\$org"
+    }
+    else {
+        $orgFolder = "$Home\AppData\Roaming\$org"
+    }
 
-    Add-content $logFilePath -value "$(Get-Date) - $logstring"
+    $logFolder = "$orgFolder\Logs"
+    $logFile = "$logFolder\$scriptName.log"
+    # Create organization folder and log if they don't exist
+    try {
+        if (!(Test-Path $orgFolder)) {
+            New-Item $orgFolder -ItemType Directory -Force | Out-Null
+        }
+        if (!(Test-Path $logFolder)) {
+            New-Item $logFolder -ItemType Directory -Force | Out-Null
+        }
+        if (!(Test-Path $logFile)) {
+            New-Item $logFile -ItemType File -Force | Out-Null
+        }
+    }
+    catch {
+        Write-Output "Failed to create log directory or file: $_"
+    }
+    # Set log date stamp
+    $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $LogEntry = "$Timestamp [$Level] $Message"
+    $streamWriter = New-Object System.IO.StreamWriter($logFile, $true)
+    $streamWriter.WriteLine($LogEntry)
+    $streamWriter.Close()
 }
 
-# Check if log directory exists, if not, create it
-if (-not (Test-Path -Path $logDir)) {
-    New-Item -ItemType Directory -Force -Path $logDir
-}
-if (-not (Test-Path -Path $appLogDir)) {
-    New-Item -ItemType Directory -Force -Path $appLogDir
-}
-if (-not (Test-Path -Path $logFilePath)){
-    New-Item -Path $appLogDir -Name Chrome.log -ItemType File
-}
-Logwrite "Start Detection Script"
+Write-Log -Level "INFO" -Message "====================== Start $scriptName Log ======================"
+
 try {
     $app = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object { $_.DisplayName -like "Google Chrome*" }
     if ($app) {
-        LogWrite "Found Google Chrome."
+        Write-Log -Level "INFO" -Message "Found Google Chrome."
         Write-Output "Installed"
         Exit 0        
     } 
     else {
-        LogWrite "Google Chrome is not installed."
+        Write-Log -Level "WARN" -Message "Google Chrome is not installed."
         Write-Output "Not Installed"
         Exit 1
     }
 }
 catch {
-    LogWrite "An error occurred: $_"
+    Write-Log -Level "ERROR" -Message "An error occurred: $_"
     exit 1
 }
