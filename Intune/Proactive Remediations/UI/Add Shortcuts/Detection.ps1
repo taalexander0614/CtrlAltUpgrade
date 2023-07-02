@@ -33,6 +33,7 @@ $shortcutGroup = "Device"
 #$shortcutGroup = "Principal"
 #$shortcutGroup = "Cameras"
 #$shortcutGroup = "Media"
+#$shortcutGroup = "FileShare"
 
 # Shortcut location
 #$location = "Start"
@@ -46,29 +47,31 @@ $Global:scriptName = "Icons - $shortcutGroup"
 ## Add the icons you want to the group you want
 $shortcuts = @()
 if ($shortcutGroup -eq "Device") {
-    $Shortcuts += @{ Name = "RCS Portal"; Target = "https://portal.richmond.k12.nc.us" }
-    $Shortcuts += @{ Name = "NCEdCloud"; Target = "https://my.ncedcloud.org" }
-    $Shortcuts += @{ Name = "Clever"; Target = "https://clever.com/in/rcsnc" }
+    $Shortcuts += @{ Name = "NCEdCloud"; Target = "https://www.targeturl.com" }
+    $Shortcuts += @{ Name = "Clever"; Target = "https://www.targeturl.com" }
     $Shortcuts += @{ Name = "Safe Exam Browser"; Target = "C:\Program Files\SafeExamBrowser\Application\SafeExamBrowser.exe" }
 }
 if ($shortcutGroup -eq "Staff") {
-    $shortcuts += @{ Name = "Timekeeper"; Target = "https://timekeeper.richmond.k12.nc.us" }
-    $shortcuts += @{ Name = "IT Workorder"; Target = "https://1to1plus.com/login/richmond_nc" }
+    $shortcuts += @{ Name = "Timekeeper"; Target = "https://www.targeturl.com" }
+    $shortcuts += @{ Name = "IT Workorder"; Target = "https://www.targeturl.com" }
 }
 if ($shortcutGroup -eq "Teacher") {
-    $shortcuts += @{ Name = "Trip Direct"; Target = "http://www.myschoolbuilding.com/myschoolbuilding/tdgateway.asp?acctNum=208857088" }
-    $shortcuts += @{ Name = "Educator Handbook"; Target = "https://educatorshandbook.com/" }
+    $shortcuts += @{ Name = "Trip Direct"; Target = "https://www.targeturl.com" }
+    $shortcuts += @{ Name = "Educator Handbook"; Target = "https://www.targeturl.com" }
 }
 if ($shortcutGroup -eq "Principal") {
-    $shortcuts += @{ Name = "School Messenger"; Target = "http://asp.schoolmessenger.com/richmondk12" }
-    $shortcuts += @{ Name = "Educator Handbook"; Target = "https://educatorshandbook.com/" }
-    $shortcuts += @{ Name = "School Cameras"; Target = "https://richmond.sharepoint.com/sites/RCSITDepartment/SitePages/Security-Cameras.aspx" }
+    $shortcuts += @{ Name = "School Messenger"; Target = "https://www.targeturl.com" }
+    $shortcuts += @{ Name = "Educator Handbook"; Target = "https://www.targeturl.com" }
+    $shortcuts += @{ Name = "School Cameras"; Target = "https://www.targeturl.com" }
 }
 if ($shortcutGroup -eq "Cameras") {
-    $shortcuts += @{ Name = "School Cameras"; Target = "https://richmond.sharepoint.com/sites/RCSITDepartment/SitePages/Security-Cameras.aspx" }
+    $shortcuts += @{ Name = "School Cameras"; Target = "https://www.targeturl.com" }
 }
 if ($shortcutGroup -eq "Media") {
-    $Shortcuts += @{ Name = "Alexandria Circulation"; Target = "https://richmond.sharepoint.com/sites/RCSITDepartment/SitePages/Alexandria-Circulation-Portals.aspx?OR=Teams-HL&CT=1673549374552&clickparams=eyJBcHBOYW1lIjoiVGVhbXMtRGVza3RvcCIsIkFwcFZlcnNpb24iOiIyNy8yMzAxMDUwNTYwMCIsIkhhc0ZlZGVyYXRlZFVzZXIiOmZhbHNlfQ%3D%3D" }
+    $Shortcuts += @{ Name = "Circulation Desk Software"; Target = "https://www.targeturl.com" }
+}
+if ($shortcutGroup -eq "FileShare") {
+    $Shortcuts += @{ Name = "FileShare"; Target = "\\ORGServer\ShareFolder" }
 }
 
 ## The rest of the script does not need to be modified
