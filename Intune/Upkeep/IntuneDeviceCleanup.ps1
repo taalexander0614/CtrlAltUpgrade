@@ -72,10 +72,10 @@ Function Write-Log {
     # Determine whether the script is running in user or system context
     $userName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
     if ($userName -eq "NT AUTHORITY\SYSTEM") {
-        $orgFolder = "$env:ProgramData\$org"
+        $Global:orgFolder = "$env:ProgramData\$org"
     }
     else {
-        $orgFolder = "$Home\AppData\Roaming\$org"
+        $Global:orgFolder = "$Home\AppData\Roaming\$org"
     }
 
     $logFolder = "$orgFolder\Logs"
