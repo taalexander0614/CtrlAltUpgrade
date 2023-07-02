@@ -14,6 +14,7 @@ Description: In K-12 tech, we end up with a lot of devices that do not have a lo
 
 .NOTES
 This script was created for use with my organizations resources and expects certain folder structures and file names. Update the variables at the top of the script as necessary to suit your needs.
+The script will automatically check whether it is running in the user or system context and place the log file accordingly.
 I prefer an org folder in both ProgramData and AppData so things can stay organized whether running things in the System or User context.
 You will also need to check the blob storage folder structure variables to ensure they match what is used in your organization.
 
@@ -23,36 +24,70 @@ https://github.com/taalexander0614/CtrlAltUpgrade
 #>
 
 # Set your orginization and the desktop shortcut's name and where you want the shortcut to go. The ico file in your blob storage should be the same as $icon.
-$org = "ORG"
+$Global:org = "ORG"
+$Global:scriptName = "ScheduledDisk-CleanupDetection"
 $Percent_Alert = 10
-$RemediationScriptName = "ScheduledDisk-CleanupRemediation"
-$Blob = "https://ORGintunestorage.blob.core.windows.net/intune"
+$remediationScriptName = "ScheduledDisk-CleanupRemediation"
+$blobURL = "https://ORGintunestorage.blob.core.windows.net/intune"
 
-# Define blob storage URL and necessary related variables. $ScriptName should exactly match the name of the script in your blob storage
-$ScriptsBlob = "$Blob/Scripts"
-$ScriptURL = "$ScriptsBlob/$ScriptName.ps1"
-$ScriptURL = "$ScriptBlob/$RemediationScriptName.ps1"
+# Define blob storage URL and necessary related variables. $scriptName should exactly match the name of the script in your blob storage
+$scriptsBlob = "$blobURL/Scripts"
+$scriptURL = "$scriptsBlob/$scriptName.ps1"
+$scriptURL = "$scriptBlob/$remediationScriptName.ps1"
 
-# Define the base folder for org resources and the needed sub-directories
-$orgFolder = "$env:PROGRAMDATA\$org"
-$ScriptFolder = "$orgFolder\Scripts"
-$logFolder = "$orgFolder\Logs"
-$Script = "$ScriptFolder\$RemediationScriptName.ps1"
+Function Write-Log {
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateSet("DEBUG", "INFO", "WARN", "ERROR")]
+        [string]$Level,
+        [Parameter(Mandatory=$true)]
+        [string]$Message
+    )
+    # Determine whether the script is running in user or system context
+    $userName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    if ($userName -eq "NT AUTHORITY\SYSTEM") {
+        $orgFolder = "$env:ProgramData\$org"
+    }
+    else {
+        $orgFolder = "$Home\AppData\Roaming\$org"
+    }
 
+    $logFolder = "$orgFolder\Logs"
+    $logFile = "$logFolder\$scriptName.log"
+    # Create organization folder and log if they don't exist
+    try {
+        if (!(Test-Path $orgFolder)) {
+            New-Item $orgFolder -ItemType Directory -Force | Out-Null
+        }
+        if (!(Test-Path $logFolder)) {
+            New-Item $logFolder -ItemType Directory -Force | Out-Null
+        }
+        if (!(Test-Path $logFile)) {
+            New-Item $logFile -ItemType File -Force | Out-Null
+        }
+    }
+    catch {
+        Write-Output "Failed to create log directory or file: $_"
+    }
+    # Set log date stamp
+    $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $LogEntry = "$Timestamp [$Level] $Message"
+    $streamWriter = New-Object System.IO.StreamWriter($logFile, $true)
+    $streamWriter.WriteLine($LogEntry)
+    $streamWriter.Close()
+}
+# Start Log
+Write-Log -Level "INFO" -Message "====================== Start $scriptName Log ======================"
 
-If(!(test-path $orgFolder)){new-item $logFolder -type directory -force | out-null}
-If(!(test-path $ScriptFolder)){new-item $ScriptFolder -type directory -force | out-null}
-If(!(test-path $logFolder)){new-item $logFolder -type directory -force | out-null}
-$date = Get-Date
-$time = Get-Date -Format "[HH:mm:ss]:"
-$logFile = $logFolder + "\" +  "$RemediationScriptName.log"
-Out-File $logFile -Append -InputObject "====================== Scheduled Task Creation ======================"
-Out-File $logFile -Append -InputObject $date
-
+$scriptFolder = "$orgFolder\Scripts"
+if (!(Test-Path $scriptFolder)) {
+    Write-Log -Level "INFO" -Message "Creating $scriptFolder"
+    New-Item $scriptFolder -ItemType Directory -Force | Out-Null
+}
 
 try {  
 # Documenting the free disk space before running the script
-    Out-File $logFile -Append -InputObject "$time Detecting the amount of free space the drive has"
+Write-Log -Level "INFO" -Message "Detecting the amount of free space the drive has"
     Try {
         $Win32_LogicalDisk = Get-ciminstance Win32_LogicalDisk | Where-Object {$_.DeviceID -eq "C:"}
         $Disk_Full_Size = $Win32_LogicalDisk.size
@@ -61,39 +96,39 @@ try {
         [int]$Free_Space_percent = '{0:N0}' -f (($Disk_Free_Space / $Total_size_NoFormat * 100),1)
     }
     Catch {
-        Out-File $logFile -Append -InputObject "$time Failed to determine the amount of free disk space; the variables in use were $osDrive, $osVolume, $prefreeSpaceGB, $pretotalSpaceGB and $prepercentFree : $($_.Exception.Message)"
+        Write-Log -Level "ERROR" -Message "Failed to determine the amount of free disk space; the variables in use were $osDrive, $osVolume, $prefreeSpaceGB, $pretotalSpaceGB and $prepercentFree : $($_.Exception.Message)"
        }
         
     If($Free_Space_percent -le $Percent_Alert) {
-        Out-File $logFile -Append -InputObject "$time Free space percent: $Free_Space_percent, creating scheduled disk cleanup task"
+        Write-Log -Level "INFO" -Message "Free space percent: $Free_Space_percent, creating scheduled disk cleanup task"
         write-output "Free space percent: $Free_Space_percent"		
 
-    Out-File $logFile -Append -InputObject "$time Starting the scheduled task creation section on the script"
+    Write-Log -Level "INFO" -Message "Starting the scheduled task creation section on the script"
         Try {
-            Out-File $logFile -Append -InputObject "$time Checking if $Script exists, and if not creating it"
+            Write-Log -Level "INFO" -Message "Checking if $script exists, and if not creating it"
             Try {
-                if ((Test-Path -Path $Script) -eq $false) {
-                    Invoke-WebRequest -Uri $ScriptURL -OutFile $Script
+                if ((Test-Path -Path $script) -eq $false) {
+                    Invoke-WebRequest -Uri $scriptURL -OutFile $script
                 }
-                if ((Test-Path -Path $Script) -eq $true) {
-                    Out-File $logFile -Append -InputObject "$time $Script is already present"
+                if ((Test-Path -Path $script) -eq $true) {
+                    Write-Log -Level "INFO" -Message "$script is already present"
                 }
             }
             Catch {
-                Out-File $logFile -Append -InputObject "$time Unable to download and save $Script from $ScriptURL, continuing to attempt in case the script is already present: $($_.Exception.Message)"
+                Write-Log -Level "ERROR" -Message "Unable to download and save $script from $scriptURL, continuing to attempt in case the script is already present: $($_.Exception.Message)"
             }
 # Create batch file to execute with scheduled task that will then execute the powershell script            
             Try {
-                $batchFile = "$ScriptFolder\$RemediationScriptName.bat"
-                $batchFileContent = "@echo off`nPowerShell.exe -ExecutionPolicy Bypass -File `"$Script`""
+                $batchFile = "$scriptFolder\$remediationScriptName.bat"
+                $batchFileContent = "@echo off`nPowerShell.exe -ExecutionPolicy Bypass -File `"$script`""
                 $batchFileContent | Out-File -FilePath $batchFile -Encoding ASCII
                 Write-Host "Batch file created at: $batchFile"
             }
             Catch {
-                Out-File $logFile -Append -InputObject "$time Unable to create $batchFile : $($_.Exception.Message)"
+                Write-Log -Level "ERROR" -Message "Unable to create $batchFile : $($_.Exception.Message)"
             }
 # Create a new scheduled task
-            Out-File $logFile -Append -InputObject "$time Creating the scheduled task"
+            Write-Log -Level "INFO" -Message "Creating the scheduled task"
             Try {
                 $A = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c `"$batchFile`""
                 $T = New-ScheduledTaskTrigger -Once -At (get-date).AddSeconds(10); $t.EndBoundary = (get-date).AddSeconds(60).ToString('s')
@@ -101,26 +136,30 @@ try {
                 Register-ScheduledTask -Force -User System -TaskName "$org DiskCleanup" -Action $A -Trigger $T -Settings $S            
             }
             Catch {
-                Out-File $logFile -Append -InputObject "$time The scheduled task was not successfully created; the variable used for this step were $T, $A, $S, $batchFile : $($_.Exception.Message)"
+                Write-Log -Level "ERROR" -Message "The scheduled task was not successfully created; the variable used for this step were $T, $A, $S, $batchFile : $($_.Exception.Message)"
+                Write-Log -Level "INFO" -Message "====================== End $scriptName Log ======================"
                 Exit 1
             }
         }
         Catch {
-            Out-File $logFile -Append -InputObject "$time Failed to create the scheduled task: $($_.Exception.Message)"
+            Write-Log -Level "ERROR" -Message "Failed to create the scheduled task: $($_.Exception.Message)"
+            Write-Log -Level "INFO" -Message "====================== End $scriptName Log ======================"
             Exit 1
         }
-        Out-File $logFile -Append -InputObject "$time Completed the disk cleanup scheduled task creation script"
+        Write-Log -Level "INFO" -Message "Completed the disk cleanup scheduled task creation script"
+        Write-Log -Level "INFO" -Message "====================== End $scriptName Log ======================"
         EXIT 1		            
     }
     Else {                
-        Out-File $logFile -Append -InputObject "$time Free space percent: $Free_Space_percent, not creating the scheduled disk cleanup task"
+        Write-Log -Level "INFO" -Message "Free space percent: $Free_Space_percent, not creating the scheduled disk cleanup task"
         write-output "Free space percent: $Free_Space_percent"		
+        Write-Log -Level "INFO" -Message "====================== End $scriptName Log ======================"
         EXIT 0
     }
 }
 catch{
-   Out-File $logFile -Append -InputObject $_.Exception.Message
-   throw
+   Write-Log -Level "ERROR" -Message $_.Exception.Message
+   Write-Log -Level "INFO" -Message "====================== End $scriptName Log ======================"
    Exit 1
 }
 

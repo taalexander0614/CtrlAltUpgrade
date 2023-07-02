@@ -13,6 +13,7 @@ The script creates a log file in the specified organization folder and logs the 
 
 .NOTES
 This script was created for use with my organizations resources and expects certain folder structures and file names. Update the variables at the top of the script as necessary to suit your needs.
+The script will automatically check whether it is running in the user or system context and place the log file accordingly.
 I prefer an org folder in both ProgramData and AppData so things can stay organized whether running things in the System or User context.
 Tested on Windows 10 with PowerShell 5.1.
 Ensure that you have administrative privileges to run this script.
@@ -22,29 +23,52 @@ Timothy Alexander
 https://github.com/taalexander0614/CtrlAltUpgrade
 #>
 
-$Global:org = "RCS"
+$Global:org = "ORG"
 $Global:scriptName = "Driver Error Detection"
 
 Function Write-Log {
     param(
         [Parameter(Mandatory=$true)]
-        [ValidateSet("DEBUG", "INFO", "WARNING", "ERROR")]
-        [string]$Level,       
+        [ValidateSet("DEBUG", "INFO", "WARN", "ERROR")]
+        [string]$Level,
         [Parameter(Mandatory=$true)]
         [string]$Message
     )
-    $orgFolder = "$env:PROGRAMDATA\$org"
+    # Determine whether the script is running in user or system context
+    $userName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    if ($userName -eq "NT AUTHORITY\SYSTEM") {
+        $orgFolder = "$env:ProgramData\$org"
+    }
+    else {
+        $orgFolder = "$Home\AppData\Roaming\$org"
+    }
+
     $logFolder = "$orgFolder\Logs"
     $logFile = "$logFolder\$scriptName.log"
     # Create organization folder and log if they don't exist
-    If(!(Test-Path $orgFolder)){New-Item $orgFolder -ItemType Directory -Force | Out-Null}
-    If(!(Test-Path $logFolder)){New-Item $logFolder -ItemType Directory -Force | Out-Null}
-    If(!(Test-Path $logFile)){New-Item $logFile -ItemType File -Force | Out-Null}
+    try {
+        if (!(Test-Path $orgFolder)) {
+            New-Item $orgFolder -ItemType Directory -Force | Out-Null
+        }
+        if (!(Test-Path $logFolder)) {
+            New-Item $logFolder -ItemType Directory -Force | Out-Null
+        }
+        if (!(Test-Path $logFile)) {
+            New-Item $logFile -ItemType File -Force | Out-Null
+        }
+    }
+    catch {
+        Write-Output "Failed to create log directory or file: $_"
+    }
     # Set log date stamp
     $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $LogEntry = "$Timestamp [$Level] $Message"
-    Add-Content -Path $logFile -Value $logEntry
+    $streamWriter = New-Object System.IO.StreamWriter($logFile, $true)
+    $streamWriter.WriteLine($LogEntry)
+    $streamWriter.Close()
 }
+# Start Log
+Write-Log -Level "INFO" -Message "====================== Start $scriptName Log ======================"
 
 # Check for missing and disabled drivers using WMI queries
 Write-Log -Level "INFO" -Message "Checking for missing and disabled drivers"
@@ -65,9 +89,11 @@ If(($Search_Disabled_Missing_Drivers).Count -gt 0) {
         Write-Log -Level "ERROR" -Message "Driver name is: $Driver_Name"
         Write-Log -Level "ERROR" -Message "Driver device ID is: $Driver_DeviceID"
     }
+    Write-Log -Level "INFO" -Message "====================== End $scriptName Log ======================"
 	Exit 1
 }
 Else {
     Write-Log -Level "INFO" -Message "There is no issue with drivers."
+    Write-Log -Level "INFO" -Message "====================== End $scriptName Log ======================"
     Exit 0
 }

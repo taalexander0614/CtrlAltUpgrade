@@ -12,6 +12,7 @@ If it fails to delete them because of permissions issues, it will continue tryin
 When checking C:\Users, the script ignores the Public folder and the Cleanup folder it creates
 
 This script was created for use with my organizations resources and expects certain folder structures and file names. Update the variables at the top of the script as necessary to suit your needs.
+The script will automatically check whether it is running in the user or system context and place the log file accordingly.
 I prefer an org folder in both ProgramData and AppData so things can stay organized whether running things in the System or User context.
 
 .AUTHOR
@@ -20,27 +21,53 @@ https://github.com/taalexander0614/CtrlAltUpgrade
 #>
 
 # Set initial variables 
-$org = "ORG"
-$ScriptName = "Orphaned User Folders"
+$Global:org = "ORG"
+$Global:scriptName = "Orphaned User Folders"
 $leftoverCleanup = "C:\Users\Cleanup"
-$orgFolder = "$env:PROGRAMDATA\$org"
-$logFolder = "$orgFolder\Logs"  
-$logFile = "$ScriptName.log"
 
-# Create necessary paths if they do not exist
-If(!(test-path $ORGFolder)){new-item $ORGFolder -type directory -force | out-null}
-If(!(test-path $logFolder)){new-item $logFolder -type directory -force | out-null}
-$logPathDir = [System.IO.Path]::GetDirectoryName($logFolder)
-if ((Test-Path -Path $logPathDir) -eq $false) {
-  New-Item -ItemType Directory -Force -Path $logPathDir | Out-Null
+Function Write-Log {
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateSet("DEBUG", "INFO", "WARN", "ERROR")]
+        [string]$Level,
+        [Parameter(Mandatory=$true)]
+        [string]$Message
+    )
+    # Determine whether the script is running in user or system context
+    $userName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    if ($userName -eq "NT AUTHORITY\SYSTEM") {
+        $orgFolder = "$env:ProgramData\$org"
+    }
+    else {
+        $orgFolder = "$Home\AppData\Roaming\$org"
+    }
+
+    $logFolder = "$orgFolder\Logs"
+    $logFile = "$logFolder\$scriptName.log"
+    # Create organization folder and log if they don't exist
+    try {
+        if (!(Test-Path $orgFolder)) {
+            New-Item $orgFolder -ItemType Directory -Force | Out-Null
+        }
+        if (!(Test-Path $logFolder)) {
+            New-Item $logFolder -ItemType Directory -Force | Out-Null
+        }
+        if (!(Test-Path $logFile)) {
+            New-Item $logFile -ItemType File -Force | Out-Null
+        }
+    }
+    catch {
+        Write-Output "Failed to create log directory or file: $_"
+    }
+    # Set log date stamp
+    $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $LogEntry = "$Timestamp [$Level] $Message"
+    $streamWriter = New-Object System.IO.StreamWriter($logFile, $true)
+    $streamWriter.WriteLine($LogEntry)
+    $streamWriter.Close()
 }
-if ((Test-Path -Path $logFolder) -eq $false) {
-  New-Item -ItemType directory -Force -Path $logFolder | Out-Null
-} 
-$date = Get-Date
-$logFile = $logFolder + "\" +  $logFile
-Out-File $logFile -Append -InputObject "====================== $ScriptName ======================"
-Out-File $logFile -Append -InputObject $date
+# Start Log
+Write-Log -Level "INFO" -Message "====================== Start $scriptName Log ======================"
 
 # Check for any accounts found on system before running script
 $startingProfileNames = @()
@@ -49,10 +76,10 @@ foreach ($profile in $profiles) {
     $profileImagePath = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$($profile.PSChildName)" -Name ProfileImagePath | Select-Object -ExpandProperty ProfileImagePath
     $startingprofilenames += $profileImagePath -replace "C:\\Users\\", ""
 }
-Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") The accounts present on device: $startingProfileNames."
+Write-Log -Level "INFO" -Message "The accounts present on device: $startingProfileNames."
 
 # Get all user profiles and compare with folders in C:\Users
-Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Checking for orphaned folders."
+Write-Log -Level "INFO" -Message "Checking for orphaned folders."
 $remainingProfileNames = @()
 $remainingprofiles = Get-ChildItem -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" -ErrorAction SilentlyContinue  
 foreach ($remainingprofile in $remainingprofiles) {
@@ -69,22 +96,22 @@ foreach ($folder in $folders) {
 }
 # Loop through each folder and attempt to delete          
 if (![string]::IsNullOrEmpty($nonMatchingFolders)) { 
-    Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Orphaned folders found: $nonMatchingFolders."
-    Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Attempting to delete orphaned folders from C:\Users." 
+    Write-Log -Level "INFO" -Message "Orphaned folders found: $nonMatchingFolders."
+    Write-Log -Level "INFO" -Message "Attempting to delete orphaned folders from C:\Users." 
     foreach ($nonMatchingFolder in $nonMatchingFolders) {
-        Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Attempting to delete $($nonMatchingFolder.FullName)."
+        Write-Log -Level "INFO" -Message "Attempting to delete $($nonMatchingFolder.FullName)."
         Try {
             Remove-Item $nonMatchingFolder.FullName -Recurse -Force -ErrorAction SilentlyContinue
         }
         Catch {
-            Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Failed to delete $($nonMatchingFolder.FullName)"
+            Write-Log -Level "ERROR" -Message "Failed to delete $($nonMatchingFolder.FullName)"
         }
-        Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Checking if $($nonMatchingFolder.FullName) still exists."
+        Write-Log -Level "INFO" -Message "Checking if $($nonMatchingFolder.FullName) still exists."
         # If folder was not deleted, assign ownership and full control access to the System account before recursively deleting the folder while silently continuing on error                    
         if (Test-Path $nonMatchingFolder.FullName -PathType Container) {
-            Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") $($nonMatchingFolder.FullName) still exists, so attempting to take ownership."
+            Write-Log -Level "WARN" -Message "$($nonMatchingFolder.FullName) still exists, so attempting to take ownership."
             Try {
-                Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Attempting to take ownership of duplicate folder $nonMatchingFolder."
+                Write-Log -Level "INFO" -Message "Attempting to take ownership of duplicate folder $nonMatchingFolder."
                 $directoryPath = $nonMatchingFolder.FullName
                 $Acl = Get-Acl $directoryPath
                 $Ar = New-Object System.Security.AccessControl.FileSystemAccessRule("System","FullControl","Allow")
@@ -94,20 +121,20 @@ if (![string]::IsNullOrEmpty($nonMatchingFolders)) {
                 Set-Acl -Path $directoryPath -AclObject $Acl -Verbose 2>&1 | Tee-Object -FilePath $logFile -Append
             }
             Catch {
-                Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Failed to take ownership of $($nonMatchingFolder.FullName) : $($_.Exception.Message)"
+                Write-Log -Level "ERROR" -Message "Failed to take ownership of $($nonMatchingFolder.FullName) : $($_.Exception.Message)"
             }
-            Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Attempting to delete $($nonMatchingFolder.FullName)."
+            Write-Log -Level "INFO" -Message "Attempting to delete $($nonMatchingFolder.FullName)."
             Try {
                 Remove-Item $nonMatchingFolder.FullName -Recurse -Force -ErrorAction SilentlyContinue
             }
             Catch {
-                Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Failed to delete $($nonMatchingFolder.FullName)"
+                Write-Log -Level "ERROR" -Message "Failed to delete $($nonMatchingFolder.FullName)"
             }
-            Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Checking if $($nonMatchingFolder.FullName) still exists."
+            Write-Log -Level "INFO" -Message "Checking if $($nonMatchingFolder.FullName) still exists."
 
             # Check to see if the folder still exists so a more thorough attempt at deletion can be made if needed
             if (Test-Path $nonMatchingFolder.FullName -PathType Container) {
-                Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") $($nonMatchingFolder.FullName) still exists, so proceeding to delete childitems."
+                Write-Log -Level "WARN" -Message "$($nonMatchingFolder.FullName) still exists, so proceeding to delete childitems."
 
                 # Put all remaining child files individually into an array and loop through to take the same attept to chenge permissions and delete                   
                 $files = Get-ChildItem $nonMatchingFolder.FullName -File -Recurse -Force
@@ -117,7 +144,7 @@ if (![string]::IsNullOrEmpty($nonMatchingFolders)) {
                             Remove-Item $file.FullName -Recurse -Force -ErrorAction SilentlyContinue
                         }
                         Catch {
-                            Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Failed to remove $folder child file $file"
+                            Write-Log -Level "ERROR" -Message "Failed to remove $folder child file $file"
                             Try { 
                                 # Retrieve the Access Control List (ACL) for the directory
                                 $directoryPath = $file.FullName
@@ -130,7 +157,7 @@ if (![string]::IsNullOrEmpty($nonMatchingFolders)) {
                                 Remove-Item $file.FullName -Recurse -Force 
                             } 
                             Catch {  
-                                Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Failed to modify permissions/delete of $nonMatchingFolder child file $($file.FullName) : $($_.Exception.Message)"
+                                Write-Log -Level "ERROR" -Message "Failed to modify permissions/delete of $nonMatchingFolder child file $($file.FullName) : $($_.Exception.Message)"
                             }
                         }
                     }   
@@ -143,7 +170,7 @@ if (![string]::IsNullOrEmpty($nonMatchingFolders)) {
                             Remove-Item $container.FullName -Recurse -Force -ErrorAction SilentlyContinue
                         }
                         Catch {
-                            Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Failed to remove $nonMatchingFolder child folder $container"
+                            Write-Log -Level "WARN" -Message "Failed to remove $nonMatchingFolder child folder $container"
                             Try { 
                                 $directoryPath = $container.FullName
                                 $Acl = Get-Acl $directoryPath
@@ -155,40 +182,41 @@ if (![string]::IsNullOrEmpty($nonMatchingFolders)) {
                                 Remove-Item $container.FullName -Recurse -Force 
                             } 
                             Catch {  
-                                Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Failed to modify permissions/delete $nonMatchingFolder child folder $($container.FullName) : $($_.Exception.Message)"
+                                Write-Log -Level "ERROR" -Message "Failed to modify permissions/delete $nonMatchingFolder child folder $($container.FullName) : $($_.Exception.Message)"
                             }
                         }
                     }                         
                 }
-                Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Attempting to delete $($nonMatchingFolder.FullName) again after deleting childitems."
+                Write-Log -Level "INFO" -Message "Attempting to delete $($nonMatchingFolder.FullName) again after deleting childitems."
                 Try {
                     Remove-Item $nonMatchingFolder.FullName -Recurse -Force -ErrorAction SilentlyContinue
                 }
                 Catch {
-                    Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Failed to delete $($nonMatchingFolder.FullName)"
+                    Write-Log -Level "ERROR" -Message "Failed to delete $($nonMatchingFolder.FullName)"
                 }
                 if (Test-Path $nonMatchingFolder.FullName -PathType Container) {
-                    Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") $($nonMatchingFolder.FullName) still exists; attempting to move to $leftoverCleanup."
-                    # If folder still exists, move to $destnationFolder to clean up C:\Users and potentially prevent more duplication 
+                    Write-Log -Level "INFO" -Message "$($nonMatchingFolder.FullName) still exists; attempting to move to $leftoverCleanup."
+                    # If folder still exists, move to $destinationFolder to clean up C:\Users and potentially prevent more duplication 
                     Try {
                         Move-Item -Path $nonMatchingFolder.FullName -Destination $leftoverCleanup
-                        Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Successfully moved $($nonMatchingFolder.FullName) to $leftoverCleanup"
+                        Write-Log -Level "INFO" -Message "Successfully moved $($nonMatchingFolder.FullName) to $leftoverCleanup"
 
                     }
                     Catch {
-                        Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") Failed to move $($nonMatchingFolder.FullName) : $($_.Exception.Message)"
+                        Write-Log -Level "ERROR" -Message "Failed to move $($nonMatchingFolder.FullName) : $($_.Exception.Message)"
                     }
                 }
             }
             else {
-                Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") $($nonMatchingFolder.FullName) does not still exist."
+                Write-Log -Level "INFO" -Message "$($nonMatchingFolder.FullName) does not still exist."
             }    
         }      
     }
 }
 else {
-    Out-File $logFile -Append -InputObject "$(Get-Date -Format "HH:mm") No orphaned folders found. Exiting script."
-}     
+    Write-Log -Level "INFO" -Message "No orphaned folders found. Exiting script."
+} 
+Write-Log -Level "INFO" -Message "====================== End $scriptName Log ======================"
 
 
 

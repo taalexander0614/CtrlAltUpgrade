@@ -14,6 +14,7 @@ I would recommend running the detection script for a while so you can export the
 After running the remediation you could uncomment the test-path for the cleanup folder and see what devices you may want to check out
 
 This script was created for use with my organizations resources and expects certain folder structures and file names. Update the variables at the top of the script as necessary to suit your needs.
+The script will automatically check whether it is running in the user or system context and place the log file accordingly.
 I prefer an org folder in both ProgramData and AppData so things can stay organized whether running things in the System or User context.
 
 .AUTHOR

@@ -31,6 +31,10 @@ The app will need these permissions:
 --DeviceManagementManagedDevices.ReadWrite.All: Required to read and write managed devices.
 --DeviceManagementManagedDevices.PrivilegedOperations.All: Required to perform privileged operations on managed devices.
 --DeviceManagementServiceConfig.ReadWrite.All: Required to read and write service configurations.
+
+.AUTHOR
+Timothy Alexander
+https://github.com/taalexander0614/CtrlAltUpgrade
 #>
 
 param(
