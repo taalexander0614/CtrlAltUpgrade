@@ -127,7 +127,8 @@ if ($action -eq "Install") {
     # Download the file
     Write-Log -Level "INFO" -Message "Downloading installer from $ChromeUrl"
     Try {
-        Invoke-WebRequest -Uri $ChromeUrl -OutFile $output
+        $webClient = New-Object System.Net.WebClient
+        $webClient.DownloadFile($ChromeUrl, $output)
         Write-Log -Level "INFO" -Message "Successfully downloaded installer"
     }
     Catch {
