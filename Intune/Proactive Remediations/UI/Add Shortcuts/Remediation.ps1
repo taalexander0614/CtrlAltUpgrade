@@ -45,7 +45,7 @@ $location = "Desktop"
 # Org specific infor and script name which is used for the log file
 $Global:org = "ORG"
 $Global:scriptName = "Icons - $shortcutGroup"
-$blob = "https://ORGintunestorage.blob.core.windows.net/intune/Icons"
+$blob = "https://ORGStorage.blob.core.windows.net/Icons"
 
 ## Add the icons you want to the group you want
 $shortcuts = @()
