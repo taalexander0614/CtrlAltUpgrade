@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
-This script unpins specified apps from the taskbar and logs the process.
+This script is part of an Intune proactive remediation and removes shortcuts from the user desktop and logs the process.
 
 .DESCRIPTION
-The script creates a log directory if it doesn't exist, then logs the process of unpinning each specified app from the taskbar. The apps to unpin are defined in the $pinnedApps array.
+The script creates a log directory if it doesn't exist, then logs the process of removing each shortcut. The shortcuts to remove are defined in the $iconsToRemove array.
 
--This script needs to be deployed in the user context
+-This script needs to be deployed in the user context to remove the user desktop icons.
 
 .OUTPUTS
 The script outputs logs to a file in the directory specified by $orgFolder.
@@ -23,15 +23,17 @@ https://github.com/taalexander0614/CtrlAltUpgrade
 
 # Org specific info and script name which is used for the log file
 $Global:org = "ORG"
-$Global:scriptName = "Unpin Taskbar Apps"
+$Global:scriptName = "Remove User Desktop Icons"
 $Global:logLevel = "INFO" # Valid values are DEBUG, INFO, WARN, ERROR
-$Global:orgFolder = "$Home\AppData\Roaming\$org"
 
-# Add the apps you want to unpin from the taskbar
-$pinnedApps = $null
-$pinnedApps += "Microsoft Store"
+# Define the list of icons to remove
+$iconsToRemove = @(
+    "Clever.lnk",
+    "AR Bookfinder.url",
+    "Calculator.url",
+    "Educator's Handbook.lnk"
+)
 
-# The rest of the script does not need to be modified
 Function Write-Log {
     param(
         [Parameter(Mandatory=$true)]
@@ -40,6 +42,7 @@ Function Write-Log {
         [Parameter(Mandatory=$true)]
         [string]$Message
     )
+
     # Compare the priority of logging level
     $LogPriority = @{
         "DEBUG" = 0
@@ -47,6 +50,7 @@ Function Write-Log {
         "WARN"  = 2
         "ERROR" = 3
     }
+
     if($LogPriority[$Level] -ge $LogPriority[$Global:logLevel]) {
         # Determine whether the script is running in user or system context
         $userName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
@@ -56,8 +60,10 @@ Function Write-Log {
         else {
             $Global:orgFolder = "$Home\AppData\Roaming\$org"
         }
+
         $logFolder = "$orgFolder\Logs"
         $logFile = "$logFolder\$scriptName.log"
+
         # Create organization folder and log if they don't exist
         try {
             if (!(Test-Path $orgFolder)) {
@@ -73,6 +79,7 @@ Function Write-Log {
         catch {
             Write-Output "Failed to create log directory or file: $_"
         }
+
         # Set log date stamp
         $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         $LogEntry = "$Timestamp [$Level] $Message"
@@ -82,44 +89,40 @@ Function Write-Log {
     }
 }
 
-Write-Log -Level "INFO" -Message "====================== Start $scriptName Log ======================"
-Write-Log -Level "INFO" -Message "Apps to be unpinned are $pinnedApps"
+Write-Log -Level "INFO" -Message "====================== Start $scriptName Remediation Log ======================"
 
-# Create a new shell application object
-Write-Log -Level "INFO" -Message "Creating shell application object"
-$shell = New-Object -ComObject "Shell.Application"
+# Define the path to the user desktop
+$userDesktopPath = [System.Environment]::GetFolderPath('Desktop')
+Write-Log -Level "DEBUG" -Message "User Desktop Path: $userDesktopPath"
+# Convert the array to a single string with a comma separator
+$iconsToRemoveString = $iconsToRemove -join ', '
+# Write the string to the log
+Write-Log -Level "INFO" -Message "Icons to remove: $iconsToRemoveString"
 
-# Get the current user's namespace
-Write-Log -Level "INFO" -Message "Getting Current User's Namespace"
-$namespace = $shell.Namespace("shell:::{4234d49b-0245-4df3-b780-3893943456e1}")
 
-ForEach ($pinnedApp in $pinnedApps) {
-    Write-Log -Level "INFO" -Message "Attempting to remove $pinnedApp"
+# Iterate over each icon in the list
+foreach ($icon in $iconsToRemove) {
+    # Define the full path to the icon
+    $iconPath = Join-Path -Path $userDesktopPath -ChildPath $icon
+    Write-Log -Level "DEBUG" -Message "Icon Path: $iconPath"
+    # Check if the icon exists
+    if (Test-Path -Path $iconPath) {
+        try {
+            # Attempt to remove the icon
+            Remove-Item -Path $iconPath -ErrorAction Stop
 
-    # Get the app
-    Write-Log -Level "INFO" -Message "Getting app"
-    $app = $namespace.Items() | Where-Object { $_.Name -eq $pinnedApp }
-
-    # If the app exists, unpin it
-    if ($app) {
-        Write-Log -Level "INFO" -Message "Attempting to unpin $pinnedApp"
-        $verb = $app.Verbs() | Where-Object { $_.Name.Replace('&', '') -match 'Unpin from taskbar' }
-        if ($verb) {
-            Write-Log -Level "INFO" -Message "$pinnedApp has option to unpin"
-            try {
-                $verb.DoIt()
-                Write-Log -Level "INFO" -Message "Successfully removed $pinnedApp from taskbar"
-            }
-            catch {
-                Write-Log -Level "ERROR" -Message "Failed to remove $pinnedApp from taskbar: $_"
-            }
-        } 
-        else {
-            Write-Log -Level "INFO" -Message "$pinnedApp does not have the option to unpin"
+            # Log the successful removal of the icon
+            Write-Log -Level "INFO" -Message "Successfully removed icon: $icon"
         }
-    } 
+        catch {
+            # Log the error if the removal fails
+            Write-Log -Level "ERROR" -Message "Failed to remove icon: $icon. Error: $_"
+        }
+    }
     else {
-        Write-Log -Level "INFO" -Message "$pinnedApp is not on the taskbar"
+        # Log a warning if the icon does not exist
+        Write-Log -Level "DEBUG" -Message "Icon does not exist: $icon"
     }
 }
-Write-Log -Level "INFO" -Message "====================== End $scriptName Log ======================"
+
+Write-Log -Level "INFO" -Message "====================== End $scriptName Remediation Log ======================"

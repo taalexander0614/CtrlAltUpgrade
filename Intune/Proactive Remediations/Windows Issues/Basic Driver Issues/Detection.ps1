@@ -25,6 +25,7 @@ https://github.com/taalexander0614/CtrlAltUpgrade
 
 $Global:org = "ORG"
 $Global:scriptName = "Driver Error Detection"
+$Global:logLevel = "INFO" # Valid values are DEBUG, INFO, WARN, ERROR
 
 Function Write-Log {
     param(
@@ -34,38 +35,46 @@ Function Write-Log {
         [Parameter(Mandatory=$true)]
         [string]$Message
     )
-    # Determine whether the script is running in user or system context
-    $userName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-    if ($userName -eq "NT AUTHORITY\SYSTEM") {
-        $Global:orgFolder = "$env:ProgramData\$org"
+    # Compare the priority of logging level
+    $LogPriority = @{
+        "DEBUG" = 0
+        "INFO"  = 1
+        "WARN"  = 2
+        "ERROR" = 3
     }
-    else {
-        $Global:orgFolder = "$Home\AppData\Roaming\$org"
-    }
-
-    $logFolder = "$orgFolder\Logs"
-    $logFile = "$logFolder\$scriptName.log"
-    # Create organization folder and log if they don't exist
-    try {
-        if (!(Test-Path $orgFolder)) {
-            New-Item $orgFolder -ItemType Directory -Force | Out-Null
+    if($LogPriority[$Level] -ge $LogPriority[$Global:logLevel]) {
+        # Determine whether the script is running in user or system context
+        $userName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+        if ($userName -eq "NT AUTHORITY\SYSTEM") {
+            $Global:orgFolder = "$env:ProgramData\$org"
         }
-        if (!(Test-Path $logFolder)) {
-            New-Item $logFolder -ItemType Directory -Force | Out-Null
+        else {
+            $Global:orgFolder = "$Home\AppData\Roaming\$org"
         }
-        if (!(Test-Path $logFile)) {
-            New-Item $logFile -ItemType File -Force | Out-Null
+        $logFolder = "$orgFolder\Logs"
+        $logFile = "$logFolder\$scriptName.log"
+        # Create organization folder and log if they don't exist
+        try {
+            if (!(Test-Path $orgFolder)) {
+                New-Item $orgFolder -ItemType Directory -Force | Out-Null
+            }
+            if (!(Test-Path $logFolder)) {
+                New-Item $logFolder -ItemType Directory -Force | Out-Null
+            }
+            if (!(Test-Path $logFile)) {
+                New-Item $logFile -ItemType File -Force | Out-Null
+            }
         }
+        catch {
+            Write-Output "Failed to create log directory or file: $_"
+        }
+        # Set log date stamp
+        $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        $LogEntry = "$Timestamp [$Level] $Message"
+        $streamWriter = New-Object System.IO.StreamWriter($logFile, $true)
+        $streamWriter.WriteLine($LogEntry)
+        $streamWriter.Close()
     }
-    catch {
-        Write-Output "Failed to create log directory or file: $_"
-    }
-    # Set log date stamp
-    $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $LogEntry = "$Timestamp [$Level] $Message"
-    $streamWriter = New-Object System.IO.StreamWriter($logFile, $true)
-    $streamWriter.WriteLine($LogEntry)
-    $streamWriter.Close()
 }
 # Start Log
 Write-Log -Level "INFO" -Message "====================== Start $scriptName Log ======================"
