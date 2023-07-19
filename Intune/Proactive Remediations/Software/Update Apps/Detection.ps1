@@ -18,16 +18,21 @@ An array of package IDs for which updates should be skipped. Packages with match
 - This script requires PowerShell version 5.1 or above.
 #>
 
+# Switch that will either update all programs that are not on the skip updates, or limit it to the specified programs
+$updateAll = $true
+
 # Comment $programs to allow all available updates for programs not in $noUpdates
 $programs = @(
     [PsCustomObject]@{ Name = "Microsoft.Teams"; Version = "1.6.0.0000" },
-    [PsCustomObject]@{ Name = "zoom.zoom"; Version = "5.15.1.17948" },
     [PsCustomObject]@{ Name = "Adobe.Acrobat.Reader.64-bit"; Version = "" }
 )
 
-$noUpdates = @()
-    $noUpdates += "Microsoft.VCRedist.2015"
-    $noUpdates += "Microsoft.VCRedist.2015"
+$noUpdates = @(
+    "Zoom.Zoom",
+    "Microsoft.VCRedist.2015",
+    "Google.Chrome"
+)
+
 
 $Global:org = "ORG"
 $Global:scriptName = "WinGet AutoUpdate"
@@ -175,7 +180,7 @@ foreach ($package in $softwareUpgradeList) {
     else {       
         if ($null -ne $programs) {
             $program = $programs | Where-Object { $package.Id -like "*$($_.Name)*" }           
-            if ($program) {
+            if ($null -ne $program) {
                 if ([string]::IsNullOrEmpty($program.Version)) {
                     Write-Log -Level "DEBUG" -Message "$($package.Id) Update available: Current - $($package.Version), Available - $($package.AvailableVersion)"
                     $updatesAvailable += $package.Id
@@ -189,12 +194,17 @@ foreach ($package in $softwareUpgradeList) {
                 }
             } 
             else {
-                Write-Log -Level "DEBUG" -Message "No update available for $($package.Id)"
+                if ($updateAll -eq $true) {
+                    Write-Log -Level "DEBUG" -Message "$($package.Id) Update available: Current - $($package.Version), Available - $($package.AvailableVersion)"
+                    $updatesAvailable += $package.Id
+                }
+                else {
+                    Write-Log -Level "WARN" -Message "No updates allowed for $($package.Id)"
+                }     
             }
         } 
         else {
-            Write-Log -Level "DEBUG" -Message "Update available for $($package.Id)"
-            $updatesAvailable += $package.Id
+            Write-Log -Level "DEBUG" -Message "No updates found"
         }
     }
 }

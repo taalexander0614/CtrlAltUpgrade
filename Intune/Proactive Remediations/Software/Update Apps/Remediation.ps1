@@ -18,10 +18,13 @@ An array of package IDs for which updates should be skipped. Packages with match
 - This script requires PowerShell version 5.1 or above.
 #>
 
+# Switch that will either update all programs that are not on the skip updates, or limit it to the specified programs
+$updateAll = $true
+
 # Comment $programs to allow all available updates for programs not in $noUpdates
 $programs = @(
     [PsCustomObject]@{ Name = "Microsoft.Teams"; Version = "1.5.0.307.67" },
-    [PsCustomObject]@{ Name = "Adobe.Acrobat.Reader.64-bit"; Version = "" }
+    [PsCustomObject]@{ Name = "Adobe.Acrobat.Reader.64-bit"; EnforcedVersion = "" }
 )
 
 # Include package IDs for which updates should be skipped. I included Zoom, Office, and Chrome because typically enterprise versions are deployed and I don't want to override our policies.
@@ -175,11 +178,11 @@ foreach ($package in $softwareUpgradeList) {
     else {       
         if ($null -ne $programs) {
             $program = $programs | Where-Object { $package.Id -like "*$($_.Name)*" }           
-            if ($program) {
+            if ($null -ne $program) {
                 if ([string]::IsNullOrEmpty($program.Version)) {
                     Write-Log -Level "DEBUG" -Message "$($package.Id) Update available: Current - $($package.Version), Available - $($package.AvailableVersion)"
                     & $winget_exe upgrade $package.Id --silent --force --accept-source-agreements --accept-package-agreements --include-unknown | ForEach-Object {
-                        if ($_.Trim() -ne "" -and $_ -notmatch "^[\/\\\-]") {
+                        if ($_ -notmatch '^[ /\\|-]*$') {
                             Write-Log -Level "DEBUG" -Message "$($package.Id) : $_"
                         }
                     }
@@ -188,7 +191,7 @@ foreach ($package in $softwareUpgradeList) {
                 elseif ($package.Version -lt $program.Version) {
                     Write-Log -Level "DEBUG" -Message "$($package.Id) Update Available: Enforced version - $($program.Version), Installed version - $($package.Version)"
                     & $winget_exe upgrade $package.Id --version $program.Version --silent --force --accept-package-agreements --accept-source-agreements | ForEach-Object {
-                        if ($_.Trim() -ne "" -and $_ -notmatch "^[\/\\\-]") {
+                        if ($_ -notmatch '^[ /\\|-]*$') {
                             Write-Log -Level "DEBUG" -Message "$($package.Id) : $_"
                         }
                     }
@@ -198,20 +201,25 @@ foreach ($package in $softwareUpgradeList) {
                 }
             } 
             else {
-                Write-Log -Level "DEBUG" -Message "No update available for $($package.Id)"
+                if ($updateAll -eq $true) {
+                    Write-Log -Level "DEBUG" -Message "Update available for $($package.Id)"
+                    & $winget_exe upgrade $package.Id --silent --force --accept-source-agreements --accept-package-agreements --include-unknown | ForEach-Object {
+                        if ($_ -notmatch '^[ /\\|-]*$') {
+                            Write-Log -Level "DEBUG" -Message "$($package.Id) : $_"
+                        }
+                    }
+                    Write-Log -Level "INFO" -Message "$($package.Id) Updated to $($package.AvailableVersion)"
+                }
+                else {
+                    Write-Log -Level "WARN" -Message "No updates allowed for $($package.Id)"
+                }     
             }
         } 
         else {
-            Write-Log -Level "DEBUG" -Message "Update available for $($package.Id)"
-            & $winget_exe upgrade $package.Id --silent --force --accept-source-agreements --accept-package-agreements --include-unknown | ForEach-Object {
-                if ($_.Trim() -ne "" -and $_ -notmatch "^[\/\\\-]") {
-                    Write-Log -Level "DEBUG" -Message "$($package.Id) : $_"
-                }
-            }
-            Write-Log -Level "INFO" -Message "$($package.Id) Updated to $($package.AvailableVersion)"
+            Write-Log -Level "DEBUG" -Message "No updates found"
         }
     }
 }
-
+    
 Write-Log -Level "INFO" -Message "====================== End $scriptName Remediation Log ======================"
 
