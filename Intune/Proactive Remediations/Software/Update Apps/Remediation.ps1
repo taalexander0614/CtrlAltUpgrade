@@ -16,6 +16,10 @@ An array of package IDs for which updates should be skipped. Packages with match
 .NOTES
 - Ensure that the Winget command-line tool is installed and available in the system's PATH.
 - This script requires PowerShell version 5.1 or above.
+
+.AUTHOR
+Timothy Alexander
+https://github.com/taalexander0614/CtrlAltUpgrade
 #>
 
 # Switch that will either update all programs that are not on the skip updates, or limit it to the specified programs
@@ -24,7 +28,7 @@ $updateAll = $true
 # Comment $programs to allow all available updates for programs not in $noUpdates
 $programs = @(
     [PsCustomObject]@{ Name = "Microsoft.Teams"; Version = "1.5.0.307.67" },
-    [PsCustomObject]@{ Name = "Adobe.Acrobat.Reader.64-bit"; EnforcedVersion = "" }
+    [PsCustomObject]@{ Name = "Adobe.Acrobat.Reader.64-bit"; Version = "" }
 )
 
 # Include package IDs for which updates should be skipped. I included Zoom, Office, and Chrome because typically enterprise versions are deployed and I don't want to override our policies.

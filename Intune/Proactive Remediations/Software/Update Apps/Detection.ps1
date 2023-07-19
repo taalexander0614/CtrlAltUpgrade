@@ -16,6 +16,10 @@ An array of package IDs for which updates should be skipped. Packages with match
 .NOTES
 - Ensure that the Winget command-line tool is installed and available in the system's PATH.
 - This script requires PowerShell version 5.1 or above.
+
+.AUTHOR
+Timothy Alexander
+https://github.com/taalexander0614/CtrlAltUpgrade
 #>
 
 # Switch that will either update all programs that are not on the skip updates, or limit it to the specified programs
