@@ -180,7 +180,7 @@ foreach ($package in $softwareUpgradeList) {
                     Write-Log -Level "DEBUG" -Message "$($package.Id) Update available: Current - $($package.Version), Available - $($package.AvailableVersion)"
                     & $winget_exe upgrade $package.Id --silent --force --accept-source-agreements --accept-package-agreements --include-unknown | ForEach-Object {
                         if ($_.Trim() -ne "" -and $_ -notmatch "^[\/\\\-]") {
-                            Write-Log -Level "DEBUG" -Message $_
+                            Write-Log -Level "DEBUG" -Message "$($package.Id) : $_"
                         }
                     }
                     Write-Log -Level "INFO" -Message "$($package.Id) Updated to $($package.AvailableVersion)"
@@ -189,7 +189,7 @@ foreach ($package in $softwareUpgradeList) {
                     Write-Log -Level "DEBUG" -Message "$($package.Id) Update Available: Enforced version - $($program.Version), Installed version - $($package.Version)"
                     & $winget_exe upgrade $package.Id --version $program.Version --silent --force --accept-package-agreements --accept-source-agreements | ForEach-Object {
                         if ($_.Trim() -ne "" -and $_ -notmatch "^[\/\\\-]") {
-                            Write-Log -Level "DEBUG" -Message $_
+                            Write-Log -Level "DEBUG" -Message "$($package.Id) : $_"
                         }
                     }
                 }
@@ -205,7 +205,7 @@ foreach ($package in $softwareUpgradeList) {
             Write-Log -Level "DEBUG" -Message "Update available for $($package.Id)"
             & $winget_exe upgrade $package.Id --silent --force --accept-source-agreements --accept-package-agreements --include-unknown | ForEach-Object {
                 if ($_.Trim() -ne "" -and $_ -notmatch "^[\/\\\-]") {
-                    Write-Log -Level "DEBUG" -Message $_
+                    Write-Log -Level "DEBUG" -Message "$($package.Id) : $_"
                 }
             }
             Write-Log -Level "INFO" -Message "$($package.Id) Updated to $($package.AvailableVersion)"
