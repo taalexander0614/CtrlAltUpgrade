@@ -20,14 +20,15 @@ An array of package IDs for which updates should be skipped. Packages with match
 
 # Comment $programs to allow all available updates for programs not in $noUpdates
 $programs = @(
-    [PsCustomObject]@{ Name = "Microsoft.Teams"; Version = "1.6.0.0000" },
-    [PsCustomObject]@{ Name = "zoom.zoom"; Version = "5.15.1.17948" },
+    [PsCustomObject]@{ Name = "Microsoft.Teams"; Version = "1.5.0.307.67" },
     [PsCustomObject]@{ Name = "Adobe.Acrobat.Reader.64-bit"; Version = "" }
 )
 
+# Include package IDs for which updates should be skipped. I included Zoom, Office, and Chrome because typically enterprise versions are deployed and I don't want to override our policies.
 $noUpdates = @()
-    $noUpdates += "Microsoft.VCRedist.2015"
-    $noUpdates += "Microsoft.VCRedist.2015"
+    $noUpdates += "Zoom.Zoom"
+    $noUpdates += "Microsoft.Office"
+    $noUpdates += "Google.Chrome"
 
 $Global:org = "ORG"
 $Global:scriptName = "WinGet AutoUpdate"
@@ -91,10 +92,10 @@ Function Write-Log {
 
 function Get-SoftwareUpgradeList {
     # resolve winget_exe
-    $winget_exe = Resolve-Path "C:\Program Files\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe"
+    $Global:winget_exe = Resolve-Path "C:\Program Files\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe"
     if ($winget_exe.count -gt 1) {
         Write-Log -Level "INFO" -Message "WinGet has multiple versions installed, using latest version" 
-        $winget_exe = $winget_exe[-1].Path
+        $Global:winget_exe = $winget_exe[-1].Path
     }
     if (!$winget_exe) {
         Write-Log -Level "ERROR" -Message "Winget not installed"
@@ -161,12 +162,11 @@ function Get-SoftwareUpgradeList {
     return $upgradeList
 }
 
-Write-Log -Level "INFO" -Message "====================== Start $scriptName Detection Log ======================"
+Write-Log -Level "INFO" -Message "====================== Start $scriptName Remediation Log ======================"
 
 $softwareUpgradeList = Get-SoftwareUpgradeList
 #$softwareUpgradeList | Format-Table
     
-$updatesAvailable = $null
 foreach ($package in $softwareUpgradeList) {
     $skipUpgrade = $noUpdates | Where-Object { $package.Id -like "*$_*" }
     if ($skipUpgrade) {
@@ -178,11 +178,20 @@ foreach ($package in $softwareUpgradeList) {
             if ($program) {
                 if ([string]::IsNullOrEmpty($program.Version)) {
                     Write-Log -Level "DEBUG" -Message "$($package.Id) Update available: Current - $($package.Version), Available - $($package.AvailableVersion)"
-                    $updatesAvailable += $package.Id
+                    & $winget_exe upgrade $package.Id --silent --force --accept-source-agreements --accept-package-agreements --include-unknown | ForEach-Object {
+                        if ($_.Trim() -ne "" -and $_ -notmatch "^[\/\\\-]") {
+                            Write-Log -Level "DEBUG" -Message $_
+                        }
+                    }
+                    Write-Log -Level "INFO" -Message "$($package.Id) Updated to $($package.AvailableVersion)"
                 }
                 elseif ($package.Version -lt $program.Version) {
                     Write-Log -Level "DEBUG" -Message "$($package.Id) Update Available: Enforced version - $($program.Version), Installed version - $($package.Version)"
-                    $updatesAvailable += $package.Id
+                    & $winget_exe upgrade $package.Id --version $program.Version --silent --force --accept-package-agreements --accept-source-agreements | ForEach-Object {
+                        if ($_.Trim() -ne "" -and $_ -notmatch "^[\/\\\-]") {
+                            Write-Log -Level "DEBUG" -Message $_
+                        }
+                    }
                 }
                 else {
                     Write-Log -Level "DEBUG" -Message "Version Limited: Enforced version - $($program.Version), Available version - $availableVersion)"
@@ -194,18 +203,15 @@ foreach ($package in $softwareUpgradeList) {
         } 
         else {
             Write-Log -Level "DEBUG" -Message "Update available for $($package.Id)"
-            $updatesAvailable += $package.Id
+            & $winget_exe upgrade $package.Id --silent --force --accept-source-agreements --accept-package-agreements --include-unknown | ForEach-Object {
+                if ($_.Trim() -ne "" -and $_ -notmatch "^[\/\\\-]") {
+                    Write-Log -Level "DEBUG" -Message $_
+                }
+            }
+            Write-Log -Level "INFO" -Message "$($package.Id) Updated to $($package.AvailableVersion)"
         }
     }
 }
 
-if ($updatesAvailable) {
-    Write-Log -Level "INFO" -Message "Updates available for $($updatesAvailable.Count) packages"
-    Write-Log -Level "INFO" -Message "====================== End $scriptName Detection Log ======================"
-    Exit 1
-} 
-else {
-    Write-Log -Level "INFO" -Message "No updates available"
-    Write-Log -Level "INFO" -Message "====================== End $scriptName Detection Log ======================"
-    Exit 0
-}
+Write-Log -Level "INFO" -Message "====================== End $scriptName Remediation Log ======================"
+
