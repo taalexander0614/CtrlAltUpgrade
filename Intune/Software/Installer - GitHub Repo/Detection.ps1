@@ -140,9 +140,11 @@ if ($installed) {
     Write-Output "$appName is installed and up-to-date."
     Write-Log -Level "INFO" -Message "$appName is installed and up-to-date."
     Write-Log -Level "INFO" -Message "====================== End $scriptName Log ======================"
+    Exit 0
 } 
 else {
     Write-Output "$appName is not installed or not up-to-date."
     Write-Log -Level "INFO" -Message "$appName is not installed or not up-to-date."
     Write-Log -Level "INFO" -Message "====================== End $scriptName Log ======================"
+    Exit 1
 }
