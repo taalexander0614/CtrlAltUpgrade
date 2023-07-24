@@ -20,7 +20,7 @@ https://github.com/taalexander0614/CtrlAltUpgrade
 
 $Global:org = "ORG"
 $Global:scriptName = "Delete Registry Keys"
-$Global:logLevel = "DEBUG" # Valid values are DEBUG, INFO, WARN, ERROR
+$Global:logLevel = "INFO" # Valid values are DEBUG, INFO, WARN, ERROR
 
 # Registry keys you want to delete. Remember that if you copy the key from RegEdit, you need to make sure it starts with HKLM:.
 $keyPaths = @(
