@@ -2,6 +2,8 @@
 
 This script is designed to help users install or uninstall applications from the Evergreen API using PowerShell. The script takes various parameters to filter and select the appropriate version of the application to install or uninstall. The Evergreen API provides information about available application versions, architectures, sizes, and more.
 
+You can directly look around in the API at [SwaggerHub](https://app.swaggerhub.com/apis/stealthpuppy/evergreen-api/1.0.0#/app/) or look at StealthPuppy's [Evergreen App Tracker](https://stealthpuppy.com/apptracker/) for a list of everything there.
+
 ## How to Use the Script
 
 1. **Prerequisites**: Ensure you have PowerShell installed on your system.
