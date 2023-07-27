@@ -20,6 +20,7 @@ Set-ExecutionPolicy Bypass
     - ### Set from the Evergreen API values
         - `$platform`: Specify the platform for which you want to install or uninstall the application (e.g., Windows, macOS, Linux).
         - `$type`: Specify the type of installer used by the application (.exe, .msi).
+        - `$language`: Specify the langaue attribute reported by the Evergreen API.
         - `$architecture`: You can specify the architecture of the system on which the application will be installed. Possible values are "x64", "x86", and "ARM64." If not specified, the script will attempt to detect the system architecture automatically.
         - `$installerType`: Specify the type of installer to be used, such as "online" or "offline." This parameter may not be required for all applications.
         - `$date`: Specify the release date of the application version you want to install. This is an optional parameter.
@@ -51,13 +52,13 @@ The script works as follows:
 To install an application, use the script as follows:
 
 ```powershell
-.\Install-App.ps1 -appName "ExampleApp" -platform "Windows" -type ".exe" -channel "stable"
+.\install.ps1 -appName "ExampleApp" -platform "Windows" -type ".exe" -channel "stable"
 ```
 
 To uninstall an application, include the `-Uninstall` switch:
 
 ```powershell
-.\Install-App.ps1 -appName "ExampleApp" -platform "Windows" -type ".exe" -channel "stable" -Uninstall
+.\install.ps1 -appName "ExampleApp" -platform "Windows" -type ".exe" -channel "stable" -Uninstall
 ```
 
 To deploy Zoom wrapped in an Intunewin, the install command should be like:

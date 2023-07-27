@@ -4,6 +4,7 @@
     [string]$appName,
     [string]$platform,
     [string]$type,
+    [string]$language,
     [string]$architecture,
     [string]$installerType,
     [string]$date,

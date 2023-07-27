@@ -1,0 +1,31 @@
+{
+  "custom-layouts": [
+    {
+      "uuid": "{363114DB-15DD-46DA-AD4B-EA8D0558744A}",
+      "name": "911 Simulator",
+      "type": "grid",
+      "info": {
+        "rows": 1,
+        "columns": 3,
+        "rows-percentage": [
+          10000
+        ],
+        "columns-percentage": [
+          3022,
+          3955,
+          3023
+        ],
+        "cell-child-map": [
+          [
+            0,
+            1,
+            2
+          ]
+        ],
+        "show-spacing": false,
+        "spacing": 16,
+        "sensitivity-radius": 20
+      }
+    }
+  ]
+}
