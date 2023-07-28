@@ -33,9 +33,9 @@ https://github.com/taalexander0614/IconShareAutomation
 #>
 
 # Azure Storage details
-$storageAccountName = "rcsintunestorage"
-$containerName = "intune"
-$jsonFileName = "Stuff/NetworkShares.json"
+$storageAccountName = "storageaccount"
+$containerName = "container"
+$jsonFileName = "JSONFilePath.json"
 
 function CreateScriptContent {
     param($iconName, $networkSharePath)
