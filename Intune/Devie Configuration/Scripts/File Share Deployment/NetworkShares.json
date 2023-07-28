@@ -1,0 +1,23 @@
+{
+    "NetworkShares": [
+      {
+        "IconName": "ANX-Software",
+        "IconUrl": "https://rcsintunestorage.blob.core.windows.net/intune/Icons/FileShare.ico",
+        "NetworkSharePath": "\\\\anxsccm\\software",
+        "Users": [
+          "TimothyAlexander",
+          "DarrellElliott"
+        ]
+      },
+      {
+        "IconName": "Testing-Folder",
+        "IconUrl": "https://rcsintunestorage.blob.core.windows.net/intune/Icons/FileShare.ico",
+        "NetworkSharePath": "\\\\anxsccm\\software",
+        "Users": [
+          "TimothyAlexander",
+          "DarrellElliott"
+        ]
+      }
+    ]
+  }
+  
