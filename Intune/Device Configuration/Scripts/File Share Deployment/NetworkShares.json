@@ -1,23 +1,22 @@
 {
-    "NetworkShares": [
-      {
-        "IconName": "ANX-Software",
-        "IconUrl": "https://rcsintunestorage.blob.core.windows.net/intune/Icons/FileShare.ico",
-        "NetworkSharePath": "\\\\anxsccm\\software",
-        "Users": [
-          "TimothyAlexander",
-          "DarrellElliott"
-        ]
-      },
-      {
-        "IconName": "Testing-Folder",
-        "IconUrl": "https://rcsintunestorage.blob.core.windows.net/intune/Icons/FileShare.ico",
-        "NetworkSharePath": "\\\\anxsccm\\software",
-        "Users": [
-          "TimothyAlexander",
-          "DarrellElliott"
-        ]
-      }
-    ]
-  }
-  
+  "NetworkShares": [
+    {
+      "IconName": "Icon1",
+      "IconUrl": "https://your_icon_url1.ico",
+      "NetworkSharePath": "\\\\server\\share1",
+      "Users": [
+        "User1",
+        "User2"
+      ]
+    },
+    {
+      "IconName": "Icon2",
+      "IconUrl": "https://your_icon_url2.ico",
+      "NetworkSharePath": "\\\\server\\share2",
+      "Users": [
+        "User3",
+        "User4"
+      ]
+    }
+  ]
+}
