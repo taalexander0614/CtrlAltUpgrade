@@ -125,11 +125,6 @@ function Get-AppDownloadUrl {
     return $downloadUrl
 }
 
-# Rest of the script...
-
-
-
-
 # Function to download the installer using WebClient
 function Invoke-InstallerDownload {
         param (
