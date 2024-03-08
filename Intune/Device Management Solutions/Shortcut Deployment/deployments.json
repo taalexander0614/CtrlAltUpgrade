@@ -1,0 +1,71 @@
+{
+    "deployedShortcuts": [
+      {
+        "name": "24-25 Curriculum Guide",
+              "version": "4",
+        "iconKey": "TextBook",
+        "startMenu": false,
+        "desktop": true,
+        "target": "msedge",
+        "shortcutArgs": "<URL to PDF>",
+              "windowStyle": "0",
+              "hotKey": "",
+              "workingDirectory": "",
+        "groups": [
+                    "<Group ID>",
+                    "<Group ID>"
+              ],
+        "users": [
+                  "ANXDT-TALEX"
+              ]
+      },
+          {
+        "name": "IP Camera Server",
+              "version": "1",
+        "iconKey": "Camera",
+        "startMenu": true,
+        "desktop": true,
+        "target": "msedge",
+        "shortcutArgs": "10.0.0.254",
+              "windowStyle": "0",
+              "hotKey": "",
+              "workingDirectory": "",
+        "groups": [
+                  "<Group ID>"
+              ],
+        "users": [
+                  "<User Name As Appearing in User Folder>"
+              ]
+      },
+          {
+        "name": "File Server",
+              "version": "1",
+        "iconKey": "FileShare",
+        "startMenu": true,
+        "desktop": true,
+        "target": "explorer",
+        "shortcutArgs": "\\\\FileServerName\\FileShareName",
+              "windowStyle": "0",
+              "hotKey": "",
+              "workingDirectory": "",
+        "groups": [],
+        "users": [
+               "<User Name As Appearing in User Folder>"
+            ]
+      }
+    ],
+    "shortcutIcons": [
+      {
+        "name": "FileShare",
+        "icoURL": "<URL to .ico file>"
+      },
+      {
+        "name": "Camera",
+        "icoURL": "<URL to .ico file>"
+      },
+      {
+        "name": "TextBook",
+        "icoURL": "<URL to .ico file>"
+      }
+   ]
+}

@@ -1,0 +1,26 @@
+{
+    "Categories": [
+        "ExampleCategory1",
+        "ExampleCategory2"
+    ],
+    "Printers": [
+        {
+            "PrinterName": "ExamplePrinter1",
+            "IpAddress": "10.0.0.1",
+            "PrinterPath": "\\\\PrintServer\\PrinterName",
+            "Categories": [
+                "ExampleCategory1"
+            ],
+            "Groups": []
+        },
+        {
+            "PrinterName": "ExamplePrinter2",
+            "IpAddress": "10.0.0.2",
+            "PrinterPath": "\\\\PrintServer\\PrinterName",
+            "Categories": [
+                "ExampleCategory2"
+            ],
+            "Groups": []
+        }
+    ]
+}
