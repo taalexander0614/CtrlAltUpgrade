@@ -1,0 +1,24 @@
+{
+    "IntuneInformation": 
+        {
+            "tenantID": "",
+            "clientID": "",
+            "clientSecret": ""
+        },
+    "EverGreenInformation":
+        {
+            "RequestURL": "https://evergreen-api.stealthpuppy.com/app/"
+        },
+    "Apps":
+        [
+            {
+                "Name": "MicrosoftEdge",
+                "Version": "120.0.2210.77",
+                "Platform": "Windows",
+                "Channel": "Stable",
+                "Release": "Enterprise",
+                "Architecture": "x64",
+                "URI": "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/8ec28e1e-d2ae-4d26-b1e6-324aa5318db1/MicrosoftEdgeEnterpriseX64.msi"
+            }
+        ]
+}
