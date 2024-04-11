@@ -3,6 +3,7 @@
 # Script to download and install GMetrix extensions for Adobe software
 # This script will download the latest version of the GMetrix extensions for Adobe software
 # If run on a schedule, it will only download the extensions if they have been updated since the last download
+# This will allow you to install the plugins without giving admin rights to the users or having to manually install them
 
 ORG_NAME="CtrlAltUpgrade"
 
