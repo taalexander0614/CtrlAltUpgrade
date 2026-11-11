@@ -1,0 +1,28 @@
+---
+# Copy to group_vars/all.yml and fill in for your environment.
+# Secrets do NOT go here: pass zabbix_api_token and wazuh_enroll_key from
+# Semaphore's variable group (secret) or Ansible Vault.
+
+# Folder holding files that must not go in git (your root CA, etc.)
+private_files: "{{ playbook_dir }}/../files"
+
+# configure-certificates.yml: files in {{ private_files }}/certificates/
+ca_certificate_files:
+  - org-root-ca.crt
+
+# configure-time.yml
+server_timezone: America/New_York
+ntp_servers:
+  - ntp1.example.internal
+  - ntp2.example.internal
+
+# provision-wazuh-agent.yml / baseline-monitoring.yml
+wazuh_manager_address: wazuh.example.internal
+wazuh_manager_hosts: []          # inventory names of your Wazuh manager servers, if they're in this inventory
+wazuh_agent_pinned_version: "4.14.9-1"   # match your manager's version
+
+# provision-zabbix-agent.yml (uses the community.zabbix collection)
+zabbix_api_hostname: zabbix.example.internal
+zabbix_server_address: zabbix.example.internal
+zabbix_host_group: Linux servers
+zabbix_template: Linux by Zabbix agent active

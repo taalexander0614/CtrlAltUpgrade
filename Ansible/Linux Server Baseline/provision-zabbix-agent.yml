@@ -1,0 +1,130 @@
+---
+- name: Provision Zabbix Agent 2
+  hosts: linux_servers
+  become: true
+  serial: 1
+  gather_facts: true
+
+  vars:
+    zabbix_agent_version: "7.0"
+    zabbix_agent2: true
+    zabbix_agent_install_agent_only: true
+    zabbix_agent_detect_ip: false
+    zabbix_agent_hostname: "{{ ansible_facts['hostname'] | upper }}"
+    zabbix_agent_serveractive: "{{ zabbix_server_address }}:10051"
+    zabbix_agent_server: "127.0.0.1"
+    zabbix_agent_listenip: "127.0.0.1"
+    zabbix_agent_tlspsk_auto: true
+    zabbix_agent_tlsconnect: psk
+    zabbix_agent_tlsaccept: psk
+    zabbix_api_create_hosts: false
+    zabbix_api_create_hostgroup: false
+
+    # Collection 4.2.0 omits Ubuntu 26 from its version table.
+    # Official Zabbix 7.0 packages for Ubuntu 26.04 were verified.
+    zabbix_agent_version_check: >-
+      {{ ansible_facts['distribution_major_version'] != '26' }}
+
+  tasks:
+    - name: Require the supported Ubuntu releases
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['distribution'] == 'Ubuntu'
+          - ansible_facts['distribution_version'] in ['24.04', '26.04']
+        fail_msg: "This provisioning task is prepared for Ubuntu 24.04 and 26.04."
+
+    - name: Require provisioning variables
+      ansible.builtin.assert:
+        that:
+          - zabbix_api_hostname is defined
+          - zabbix_server_address is defined
+          - zabbix_host_group is defined
+          - zabbix_template is defined
+          - (zabbix_api_token | default('') | length) > 0
+        fail_msg: "Provide zabbix_api_token (for example from your Semaphore variable group or Ansible Vault)."
+        quiet: true
+
+    - name: Verify API access before changing the host
+      community.zabbix.zabbix_group_info:
+        hostgroup_name:
+          - "{{ zabbix_host_group }}"
+      delegate_to: localhost
+      become: false
+      no_log: true
+      vars:
+        ansible_connection: httpapi
+        ansible_network_os: community.zabbix.zabbix
+        ansible_host: "{{ zabbix_api_hostname }}"
+        ansible_httpapi_port: 443
+        ansible_httpapi_use_ssl: true
+        ansible_httpapi_validate_certs: true
+        ansible_zabbix_url_path: ""
+        ansible_zabbix_auth_key: "{{ zabbix_api_token }}"
+
+    - name: Inspect installed packages
+      ansible.builtin.package_facts:
+        manager: apt
+
+    - name: Check whether this task manages the agent
+      ansible.builtin.stat:
+        path: /var/lib/org-ansible/zabbix-managed
+      register: zabbix_management_marker
+
+    - name: Determine whether provisioning is required
+      ansible.builtin.set_fact:
+        provision_zabbix: >-
+          {{ 'zabbix-agent2' not in ansible_facts.packages
+             or zabbix_management_marker.stat.exists }}
+
+    - name: Provision and register the agent
+      when: provision_zabbix | bool
+      block:
+        - name: Record management ownership before installation
+          ansible.builtin.file:
+            path: /var/lib/org-ansible/zabbix-managed
+            state: directory
+            owner: root
+            group: root
+            mode: '0700'
+
+        - name: Install and configure using the standard agent role
+          ansible.builtin.include_role:
+            name: community.zabbix.zabbix_agent
+
+        - name: Register the host with its generated PSK
+          community.zabbix.zabbix_host:
+            host_name: "{{ zabbix_agent_hostname }}"
+            visible_name: "{{ zabbix_agent_hostname }}"
+            host_groups:
+              - "{{ zabbix_host_group }}"
+            link_templates:
+              - "{{ zabbix_template }}"
+            status: enabled
+            state: present
+            tls_connect: 2
+            tls_accept: 2
+            tls_psk_identity: "{{ zabbix_agent_tlspskidentity }}"
+            tls_psk: "{{ zabbix_agent_tlspsk_secret }}"
+          delegate_to: localhost
+          become: false
+          no_log: true
+          vars:
+            ansible_connection: httpapi
+            ansible_network_os: community.zabbix.zabbix
+            ansible_host: "{{ zabbix_api_hostname }}"
+            ansible_httpapi_port: 443
+            ansible_httpapi_use_ssl: true
+            ansible_httpapi_validate_certs: true
+            ansible_zabbix_url_path: ""
+            ansible_zabbix_auth_key: "{{ zabbix_api_token }}"
+
+    - name: Ensure Agent 2 is enabled and running
+      ansible.builtin.systemd_service:
+        name: zabbix-agent2
+        enabled: true
+        state: started
+
+    - name: Report existing configuration preservation
+      ansible.builtin.debug:
+        msg: "Existing agent configuration and PSK preserved. Provisioning was not required."
+      when: not (provision_zabbix | bool)

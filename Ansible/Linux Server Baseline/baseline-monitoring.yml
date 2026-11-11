@@ -1,0 +1,93 @@
+---
+- name: Maintain monitoring packages and services
+  hosts: linux_servers
+  become: true
+  serial: 1
+  gather_facts: false
+
+  vars:
+    wazuh_agent_version: "{{ wazuh_agent_pinned_version }}"
+
+  tasks:
+    - name: Inspect installed packages
+      ansible.builtin.package_facts:
+        manager: apt
+
+    - name: Verify the manager package on manager hosts
+      ansible.builtin.assert:
+        that:
+          - "'wazuh-manager' in ansible_facts.packages"
+        fail_msg: "Wazuh manager package is missing. Restore the manager installation before continuing."
+      when: inventory_hostname in wazuh_manager_hosts
+
+    - name: Check existing monitoring configuration
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /etc/zabbix/zabbix_agent2.conf
+        - /var/ossec/etc/ossec.conf
+        - /var/ossec/etc/client.keys
+      register: monitoring_files
+
+    - name: Require existing configuration and enrollment
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isreg | default(false)
+          - (item.stat.size | default(0)) > 0
+        fail_msg: "Missing or empty {{ item.item }}. Run the appropriate installation/enrollment task first."
+        quiet: true
+      loop: "{{ monitoring_files.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Install Zabbix Agent 2 from the 7.0 branch if missing
+      ansible.builtin.apt:
+        name: "zabbix-agent2=1:7.0.*"
+        state: present
+        update_cache: true
+        dpkg_options: force-confdef,force-confold
+      when: "'zabbix-agent2' not in ansible_facts.packages"
+
+    - name: Ensure the approved Wazuh agent version is installed
+      ansible.builtin.apt:
+        name: "wazuh-agent={{ wazuh_agent_version }}"
+        state: present
+        dpkg_options: force-confdef,force-confold
+      when: inventory_hostname not in wazuh_manager_hosts
+
+    - name: Keep Wazuh agents on the approved version
+      ansible.builtin.dpkg_selections:
+        name: wazuh-agent
+        selection: hold
+      when: inventory_hostname not in wazuh_manager_hosts
+
+    - name: Validate Zabbix configuration
+      ansible.builtin.command:
+        cmd: zabbix_agent2 -T -c /etc/zabbix/zabbix_agent2.conf
+      changed_when: false
+
+    - name: Ensure Zabbix Agent 2 is enabled and running
+      ansible.builtin.systemd_service:
+        name: zabbix-agent2
+        enabled: true
+        state: started
+
+    - name: Ensure Wazuh agents are enabled and running
+      ansible.builtin.systemd_service:
+        name: wazuh-agent
+        enabled: true
+        state: started
+      when: inventory_hostname not in wazuh_manager_hosts
+
+    - name: Ensure Wazuh manager components are enabled and running
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop:
+        - wazuh-indexer
+        - wazuh-manager
+        - filebeat
+        - wazuh-dashboard
+      when: inventory_hostname in wazuh_manager_hosts

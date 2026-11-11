@@ -1,0 +1,36 @@
+---
+- name: Configure SSH access
+  hosts: linux_servers
+  become: true
+  serial: 1
+  gather_facts: false
+
+  tasks:
+    - name: Configure key-based SSH access
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config.d/00-org-access.conf
+        owner: root
+        group: root
+        mode: '0644'
+        backup: true
+        content: |
+          # Managed by Ansible.
+          PermitRootLogin no
+          PubkeyAuthentication yes
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+      notify: Reload SSH
+
+    - name: Validate the complete SSH configuration
+      ansible.builtin.command:
+        cmd: /usr/sbin/sshd -t
+      changed_when: false
+
+    - name: Apply validated SSH settings
+      ansible.builtin.meta: flush_handlers
+
+  handlers:
+    - name: Reload SSH
+      ansible.builtin.service:
+        name: ssh
+        state: reloaded

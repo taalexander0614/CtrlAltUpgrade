@@ -1,0 +1,64 @@
+---
+- name: Configure internal time sources
+  hosts: linux_servers
+  become: true
+  serial: 1
+  gather_facts: false
+
+  tasks:
+    - name: Set the time zone
+      community.general.timezone:
+        name: "{{ server_timezone }}"
+
+    - name: Use chrony for time sync
+      ansible.builtin.apt:
+        name: chrony
+        state: present
+
+    - name: Ensure the chrony drop-in folder exists
+      ansible.builtin.file:
+        path: /etc/chrony/conf.d
+        state: directory
+        mode: '0755'
+
+    - name: Configure internal NTP servers
+      ansible.builtin.copy:
+        dest: /etc/chrony/conf.d/org-time.conf
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          # Managed by Ansible.
+          # Allow internal NTP independently of external NTS sources.
+          authselectmode ignore
+          {% for ntp in ntp_servers %}
+          server {{ ntp }} iburst prefer
+          {% endfor %}
+      notify: Restart chrony
+
+    - name: Apply configuration before checking synchronization
+      ansible.builtin.meta: flush_handlers
+
+    - name: Wait for synchronization
+      ansible.builtin.command:
+        cmd: chronyc waitsync 12 0.1 0 5
+      changed_when: false
+
+    - name: Read synchronization status
+      ansible.builtin.command:
+        cmd: chronyc tracking
+      register: time_status
+      changed_when: false
+
+    - name: Display synchronization status
+      ansible.builtin.debug:
+        var: time_status.stdout_lines
+      when: not ansible_check_mode
+
+  handlers:
+    - name: Restart chrony
+      ansible.builtin.service:
+        name: chrony
+        state: restarted
+      # In a dry run chrony may not be installed yet.
+      when: not ansible_check_mode

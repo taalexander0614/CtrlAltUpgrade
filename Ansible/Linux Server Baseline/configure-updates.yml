@@ -1,0 +1,35 @@
+---
+# Automatic security updates for Ubuntu servers. Only the Ubuntu security
+# pocket is upgraded; held packages (Wazuh agent) and vendor repos are left alone.
+- name: Configure automatic security updates
+  hosts: linux_servers
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Install unattended-upgrades
+      ansible.builtin.apt:
+        name: unattended-upgrades
+        state: present
+
+    - name: Enable daily package lists and security upgrades
+      ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          // Managed by Ansible.
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Unattended-Upgrade "1";
+          APT::Periodic::AutocleanInterval "7";
+
+    - name: Never reboot on our behalf
+      ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/52org-unattended
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          // Managed by Ansible. Reboots are scheduled by a person.
+          Unattended-Upgrade::Automatic-Reboot "false";

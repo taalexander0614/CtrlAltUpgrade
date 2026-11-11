@@ -1,0 +1,44 @@
+---
+- name: Configure organization certificate trust
+  hosts: linux_servers
+  become: true
+  gather_facts: false
+
+  vars:
+    org_ca_files: "{{ ca_certificate_files }}"
+
+  tasks:
+    - name: Ensure Ubuntu certificate tools are installed
+      ansible.builtin.apt:
+        name: ca-certificates
+        state: present
+
+    - name: Install organization CA certificates
+      ansible.builtin.copy:
+        src: "{{ private_files }}/certificates/{{ item }}"
+        dest: "/usr/local/share/ca-certificates/{{ item }}"
+        owner: root
+        group: root
+        mode: '0644'
+        validate: /usr/bin/openssl x509 -in %s -noout -checkend 0
+      loop: "{{ org_ca_files }}"
+      notify: Update CA trust store
+
+    - name: Apply trust changes before verification
+      ansible.builtin.meta: flush_handlers
+
+    - name: Verify certificates against the system trust store
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/openssl
+          - verify
+          - -CAfile
+          - /etc/ssl/certs/ca-certificates.crt
+          - "/usr/local/share/ca-certificates/{{ item }}"
+      loop: "{{ org_ca_files }}"
+      changed_when: false
+
+  handlers:
+    - name: Update CA trust store
+      ansible.builtin.command:
+        cmd: /usr/sbin/update-ca-certificates

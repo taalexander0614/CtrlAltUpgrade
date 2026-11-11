@@ -1,0 +1,92 @@
+---
+- name: Provision Wazuh agents
+  hosts: linux_servers
+  become: true
+  gather_facts: true
+
+  vars:
+    wazuh_agent_version: "{{ wazuh_agent_pinned_version }}"
+
+  tasks:
+    - name: Inspect installed packages
+      ansible.builtin.package_facts:
+        manager: apt
+
+    - name: Protect existing manager installations
+      ansible.builtin.assert:
+        that:
+          - "'wazuh-manager' not in ansible_facts.packages"
+        fail_msg: "This host has a Wazuh manager. Add it to wazuh_manager_hosts before continuing."
+      when: inventory_hostname not in wazuh_manager_hosts
+
+    - name: Install and configure a missing Wazuh agent
+      when:
+        - inventory_hostname not in wazuh_manager_hosts
+        - "'wazuh-agent' not in ansible_facts.packages"
+      block:
+        - name: Require the enrollment password
+          ansible.builtin.assert:
+            that:
+              - (wazuh_enroll_key | default('') | length) > 0
+            fail_msg: "Provide wazuh_enroll_key (for example from your Semaphore variable group or Ansible Vault)."
+            quiet: true
+
+        - name: Create APT key directory
+          ansible.builtin.file:
+            path: /etc/apt/keyrings
+            state: directory
+            owner: root
+            group: root
+            mode: '0755'
+
+        - name: Download Wazuh repository signing key
+          ansible.builtin.get_url:
+            url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+            dest: /etc/apt/keyrings/wazuh.asc
+            owner: root
+            group: root
+            mode: '0644'
+
+        - name: Configure official Wazuh repository
+          ansible.builtin.deb822_repository:
+            name: wazuh
+            types:
+              - deb
+            uris:
+              - https://packages.wazuh.com/4.x/apt/
+            suites:
+              - stable
+            components:
+              - main
+            signed_by: /etc/apt/keyrings/wazuh.asc
+            install_python_debian: true
+            enabled: true
+            state: present
+
+        - name: Install and configure the approved agent
+          ansible.builtin.apt:
+            name: "wazuh-agent={{ wazuh_agent_version }}"
+            state: present
+            update_cache: true
+          # The manager requires an enrollment password (authd use_password=yes).
+          # wazuh_enroll_key comes from your secret store, never from the repo.
+          environment:
+            WAZUH_MANAGER: "{{ wazuh_manager_address }}"
+            WAZUH_REGISTRATION_SERVER: "{{ wazuh_manager_address }}"
+            WAZUH_REGISTRATION_PASSWORD: "{{ wazuh_enroll_key }}"
+            WAZUH_AGENT_NAME: "{{ ansible_facts['hostname'] | upper }}"
+          no_log: true
+
+    - name: Hold the agent against unplanned upgrades
+      ansible.builtin.dpkg_selections:
+        name: wazuh-agent
+        selection: hold
+      when: inventory_hostname not in wazuh_manager_hosts
+
+    - name: Enable and start the agent
+      ansible.builtin.systemd_service:
+        name: wazuh-agent
+        daemon_reload: true
+        enabled: true
+        state: started
+      when: inventory_hostname not in wazuh_manager_hosts

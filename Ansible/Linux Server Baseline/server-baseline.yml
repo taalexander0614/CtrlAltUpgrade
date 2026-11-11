@@ -1,0 +1,11 @@
+---
+# Universal Ubuntu server baseline. Safe to re-run; also used as a drift check
+# (anything that reports "changed" on an already-baselined server is worth a look).
+# Run from Semaphore (or ansible-playbook) against your Linux inventory group.
+# Secrets (zabbix_api_token, wazuh_enroll_key) come from your secret store, not this repo.
+- ansible.builtin.import_playbook: configure-certificates.yml
+- ansible.builtin.import_playbook: configure-ssh.yml
+- ansible.builtin.import_playbook: configure-time.yml
+- ansible.builtin.import_playbook: configure-updates.yml
+- ansible.builtin.import_playbook: provision-wazuh-agent.yml
+- ansible.builtin.import_playbook: provision-zabbix-agent.yml
