@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-This script unpins specified apps from the taskbar and logs the process.
+This script detects whether specified apps are pinned to the taskbar and logs the process.
 
 .DESCRIPTION
-The script creates a log directory if it doesn't exist, then logs the process of unpinning each specified app from the taskbar. The apps to unpin are defined in the $pinnedApps array.
+The script creates a log directory if it doesn't exist, then logs the process of checking each specified app on the taskbar. The apps to check are defined in the $pinnedApps array.
 
 -This script needs to be deployed in the user context
 

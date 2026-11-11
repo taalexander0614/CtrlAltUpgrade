@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-This script creates a shortcut to execute a printer group management GUI.
+Deep disk cleanup run by the scheduled task that ScheduledDisk-CleanupDetection.ps1 creates: DISM health restore and component cleanup, Windows Update cache removal and cleanmgr.
 
 .DESCRIPTION
 This script will: 

@@ -7,7 +7,7 @@
     After connecting, it pulls the list of inactive clients and attempts to remove any clients that are not found in Active Directory (or Intune if using Co-Management).
     Any errors, as well as a summary of the cleanup, are logged.
     The script can be run as a scheduled task or manually.
-    Setting the $audit variable to $true will prevent any changes from being made so you can review the log file before running in production.
+    Setting the $auditOnly variable to $true (the default) will prevent any changes from being made so you can review the log file before running in production.
 
 .NOTES
     This script was created for use with my organization's resources and expects certain folder structures and file names. Update the variables at the top of the script as necessary to suit your needs.

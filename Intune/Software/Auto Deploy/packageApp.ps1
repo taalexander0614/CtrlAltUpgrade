@@ -1,3 +1,19 @@
+<#
+.SYNOPSIS
+Downloads an installer and packages it as a .intunewin file with Microsoft's Win32 Content Prep Tool.
+
+.DESCRIPTION
+A first step toward an automated "app factory": downloads the installer from $AppURL, fetches IntuneWinAppUtil.exe if it
+is missing, and runs it to produce a .intunewin package under C:\IntuneAppFactory. apps.json shows the intended input
+format (app details plus Evergreen API lookups); uploading to Intune is not implemented yet.
+
+.NOTES
+Work in progress. Update the variables at the top for the app you want to package.
+
+.AUTHOR
+Timothy Alexander
+https://github.com/taalexander0614/CtrlAltUpgrade
+#>
 $tempFolder = "C:\IntuneAppFactory\Temp"
 $AppName = "MicrosoftEdge"
 $AppURL = "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/8ec28e1e-d2ae-4d26-b1e6-324aa5318db1/MicrosoftEdgeEnterpriseX64.msi"

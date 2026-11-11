@@ -1,4 +1,17 @@
-﻿param (
+﻿<#
+.SYNOPSIS
+Installs or uninstalls an application using download details from the Evergreen API.
+
+.DESCRIPTION
+Looks up -appName in the Evergreen API (https://evergreen-api.stealthpuppy.com), filters the results with any of the
+other Evergreen parameters you pass (platform, architecture, channel, type and so on), downloads the matching installer
+and runs it, or uninstalls the app with -Uninstall. See README.md in this folder for the parameters and examples.
+
+.AUTHOR
+Timothy Alexander
+https://github.com/taalexander0614/CtrlAltUpgrade
+#>
+param (
     # Evergreen API Data
     [Parameter(Mandatory=$true)]
     [string]$appName,

@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-A detection script that is part of a proactive remediation used to delete specified registry keys/paths.
+A remediation script that is part of a proactive remediation used to delete specified registry keys/paths.
 
 .DESCRIPTION
 

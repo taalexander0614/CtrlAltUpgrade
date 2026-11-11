@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-This script creates a shortcut to execute a printer group management GUI.
+Detects low disk space and schedules a full disk cleanup (ScheduledDisk-CleanupRemediation.ps1) to run as a scheduled task, since a cleanup this long would exceed the Intune remediation time limit.
 
 .DESCRIPTION
 Description: In K-12 tech, we end up with a lot of devices that do not have a lot of disk space and even when imaging ran into low disk space problems from different people logging in and creating duplicate user profiles, 
