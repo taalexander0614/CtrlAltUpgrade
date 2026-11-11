@@ -102,8 +102,15 @@ echo "############################################################"
 user_list=$(dscl . list /Users | grep -v '^_')
 
 for username in $user_list; do
-    # Skip exempt users
-    if [[ " ${exempt_users[@]} " =~ " ${username} " ]]; then
+    # Skip exempt users (exact name match)
+    is_exempt=false
+    for exempt in "${exempt_users[@]}"; do
+        if [[ "$username" == "$exempt" ]]; then
+            is_exempt=true
+            break
+        fi
+    done
+    if [[ "$is_exempt" == true ]]; then
         echo "Skipping exempt: $username"
         continue
     fi

@@ -18,7 +18,7 @@ log_directory="$org_log_directory/$package_name"
 log="$log_directory/$package_name - $(date '+%Y-%m-%d %H%M').log"
 
 # Define the downloaded date file
-date_last_downloaded="/var/log/RCS/gmetrix_extensions_date.txt"
+date_last_downloaded="$org_log_directory/gmetrix_extensions_date.txt"
 
 # Define the destination folder
 DEST_FOLDER="/Library/Application Support/Adobe/CEP/extensions/"
@@ -117,7 +117,7 @@ echo "Unzipping $temp_directory/$package_name.zip to $temp_directory"
 unzip "$temp_directory/$package_name.zip" -d "$temp_directory" > /dev/null || handle_error "Failed to unzip package, exiting script..."
 
 # Move into the extracted directory
-cd "$temp_directory/AdobePlugins"
+cd "$temp_directory/AdobePlugins" || handle_error "Could not open $temp_directory/AdobePlugins, exiting script..."
 
 # Loop through each zip file in the directory
 for zip_file in *.zip; do
