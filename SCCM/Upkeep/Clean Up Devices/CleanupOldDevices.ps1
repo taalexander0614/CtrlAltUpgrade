@@ -7,7 +7,7 @@ The script is designed to help manage device records in Active Directory (AD) an
 It's particularly useful in scenarios where a change in device naming scheme has resulted in duplicate records. 
 The script identifies duplicates based on the last five characters of device names (assumed to be the asset number), and it prioritizes newer devices over older ones based on the naming scheme.
 In addition to AD and SCCM, the script also handles device records in Intune, ensuring that devices are properly managed across all three platforms.
-Setting the $audit variable to $true will prevent any changes from being made so you can review the log file before running in production.
+Setting the $auditOnly variable to $true (the default) will prevent any changes from being made so you can review the log file before running in production.
 
 .INPUTS
 No inputs. You cannot pipe objects to this script.
@@ -188,7 +188,7 @@ try {
     Write-Log -Level "INFO" -Message "Found $($duplicateDevices.Count) devices with duplicate asset numbers"
     Write-Log -Level "DEBUG" -Message "Old Devices: $($oldDevices.Name -join ', ')"
     Write-Log -Level "DEBUG" -Message "New Devices: $($newDevices.Name -join ', ')"
-    Write-Log -Level "DEBUG" -Message "RCS Devices: $($domainDevices.Name -join ', ')"
+    Write-Log -Level "DEBUG" -Message "Domain Devices: $($domainDevices.Name -join ', ')"
     Write-Log -Level "DEBUG" -Message "Intune Devices: $($intuneDevices.Name -join ', ')"
 }
 catch {

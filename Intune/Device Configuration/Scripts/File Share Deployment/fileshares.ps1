@@ -31,6 +31,8 @@ This script was created to automate the process of setting up user-specific icon
 Timothy Alexander
 https://github.com/taalexander0614/IconShareAutomation
 #>
+# Folder name used under %APPDATA% for this script's icons and helper scripts
+$orgFolderName = "ORG"
 
 # Azure Storage details
 $storageAccountName = "storageaccount"
@@ -78,7 +80,7 @@ try {
 
         # Save the icon files to the AppData folder
         $appDataPath = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::ApplicationData)
-        $iconsFolderPath = Join-Path $appDataPath "RCS\Icons"
+        $iconsFolderPath = Join-Path $appDataPath "$orgFolderName\Icons"
         New-Item -ItemType Directory -Force -Path $iconsFolderPath | Out-Null
 
         $iconPath = Join-Path $iconsFolderPath "$iconName.ico"
@@ -94,7 +96,7 @@ try {
         # Create the script content
         $scriptContent = CreateScriptContent -iconName $iconName -networkSharePath $networkSharePath
 
-        # Save the script to %appdata%\RCS\Icons folder
+        # Save the script to %appdata%\<org>\Icons folder
         $scriptFilePath = Join-Path $iconsFolderPath "$iconName.ps1"
 
         # Check if the script file already exists

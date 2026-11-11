@@ -35,6 +35,8 @@ $OneDriveCommercial = $true
 $tenantId = '<Tenant ID>'
 $appID = '<App ID>'
 $appSecret = '<App Secret>'
+# Suffix Windows adds to profile folder names on domain-joined devices (e.g. jsmith.CONTOSO); stripped to get the user name
+$profileDomainSuffix = 'ORG'
 
 Function Write-Log {
     param(
@@ -158,7 +160,7 @@ function Invoke-GetAllUsers {
         $userProfileKeyPath = "$profileListKeyPath\$sid"
         $userProfilePath = (Get-ItemProperty -Path $userProfileKeyPath).ProfileImagePath
         $userName = $userProfilePath.Split("\")[-1]
-        $userName = $userName -replace '\.RCS.*$',''
+        $userName = $userName -replace "\.$([regex]::Escape($profileDomainSuffix)).*$",''
         # Get the Environment key path for the user
         $userEnvKeyPath = "Registry::HKEY_USERS\$sid\Environment"
 
@@ -268,7 +270,7 @@ function Invoke-GetGroupMembers {
         Write-Log -Message "$group members: $($members.Count)"
         foreach ($member in $members) {
             if ($($member.'@odata.type') -eq "#microsoft.graph.user") {
-                $membersList += $member.userPrincipalName.Replace("@richmond.k12.nc.us", "")
+                $membersList += ($member.userPrincipalName -replace '@.*$','')
             } 
             if ($($member.'@odata.type') -eq "#microsoft.graph.device") {
                 $membersList += $member.displayName

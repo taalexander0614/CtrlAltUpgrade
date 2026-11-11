@@ -69,7 +69,7 @@ The JSON file used by the script contains two main sections: `deployedShortcuts`
 
     ```json
     "target": "explorer.exe",
-    "shortcutArgs": "\\\\ANXSCCM\\Wallpapers"
+    "shortcutArgs": "\\\\FileServer\\Wallpapers"
     ```
 
 6. **Open Application**

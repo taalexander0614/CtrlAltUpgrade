@@ -12,7 +12,7 @@
 # Primary variables
 org_name="CtrlAltUpgrade" # Name of the organization
 package_name="Mac Lab Suite - 2023" # Name of the package from Adobe Admin Console
-iis_ip="10.24.15.52" # IP Address of the IIS server
+iis_ip="IIS_SERVER_IP" # IP address or hostname of the IIS server hosting the package
 apps_to_install=(
     "/Applications/Adobe Photoshop 2023/Adobe Photoshop 2023.app"
     "/Applications/Adobe Illustrator 2023/Adobe Illustrator.app"
