@@ -7,11 +7,11 @@ The script performs the following actions:
 - Checks if RSAT (Remote Server Administration Tools) are installed on the computer and installs them if they are not.
 - Creates the necessary directories on the local machine if they do not exist.
 - Downloads a script and an icon file from the organization blob storage if they are not already present.
-- Copies the "ActiveDirectory" PowerShell module to the Modules directory.
+- Copies the "ActiveDirectory" PowerShell module to the Modules directory, if it was packaged with the installer (see README.md).
 - Creates a shortcut to run the downloaded PowerShell script, sets an icon for it, and places the shortcut on the common desktop.
 
 .EXAMPLE
-To install the GUI, you can manually run the script with the ActiveDirectory module in the same directory or or wrap it in an Intunewin 
+To install the GUI, you can manually run the script with the ActiveDirectory module in the same directory or wrap it in an Intunewin 
 
 .NOTES
 This script was created for use with my organizations resources and expects certain folder structures and file names. Update the variables at the top of the script as necessary to suit your needs.
@@ -76,8 +76,12 @@ If(!(test-path $IconFolder)){new-item $IconFolder -type directory -force | out-n
 If(!(test-path -Path $ShortcutIcon)){invoke-webrequest -Uri $IconURL -OutFile $ShortcutIcon}
 If(!(test-path -Path $Script)){invoke-webrequest -Uri $ScriptURL -OutFile $Script}
 
-# Copy the module to the Modules folder
-If(!(test-path -Path "$ModuleFolder\$Module")){Copy-Item -Path ".\$Module" -Destination $ModuleFolder -Recurse}
+# Copy the ActiveDirectory module to the Modules folder if it was packaged next to this script.
+# The module is not stored in this repository (it is Microsoft's); see README.md for how to package it.
+If((test-path -Path ".\$Module") -and !(test-path -Path "$ModuleFolder\$Module")){Copy-Item -Path ".\$Module" -Destination $ModuleFolder -Recurse}
+If(!(test-path -Path ".\$Module") -and !(Get-Module -ListAvailable -Name $Module)){
+    Write-Warning "The $Module module was not packaged with this installer and RSAT is not installed. Install RSAT (Rsat.ActiveDirectory.DS-LDS.Tools) or package the module; see README.md."
+}
 
 # Create the shortcut
 $WshShell = New-Object -ComObject WScript.Shell

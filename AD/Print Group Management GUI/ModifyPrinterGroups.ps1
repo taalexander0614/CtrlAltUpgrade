@@ -16,7 +16,7 @@ The users they can choose from are the users in their school's OU.
 
 .NOTES
 This script is not very generalized but I tried to organze it so someone could see how to adapt it.
-Requires the Active Directory module for PowerShell (Which I have being manually added and imported) and .NET Windows Forms.
+Requires the Active Directory module for PowerShell (either RSAT, or a copy packaged with Install.ps1; see README.md) and .NET Windows Forms.
 Tested on Windows 10 with PowerShell 5.1.
 
 .AUTHOR
@@ -53,11 +53,16 @@ $ShortcutIcon = "$IconFolder\$icon.ico"
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-Import-Module "$Module\Microsoft.ActiveDirectory.Management.dll"
+# Use a packaged copy of the ActiveDirectory module if the installer placed one, otherwise the installed RSAT module
+if (Test-Path "$Module\Microsoft.ActiveDirectory.Management.dll") {
+    Import-Module "$Module\Microsoft.ActiveDirectory.Management.dll"
+}
+else {
+    Import-Module ActiveDirectory -ErrorAction Stop
+}
 
 # Retrieve the current user's SID (Security Identifier)
 $currentUserSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-#$currentUserSid = "jamiegreene"
 $currentuser = Get-ADUser -Identity $currentUserSid
 $AllowedParentOU = $currentUser.DistinguishedName -replace '^.*?,.*?,', ''
 $classifiedStaffOU = "$classifiedStaff,$AllowedParentOU"

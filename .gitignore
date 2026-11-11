@@ -1,2 +1,10 @@
 
 .DS_Store
+
+# Microsoft modules and binaries are not redistributed here
+ActiveDirectory/
+*.dll
+*.mui
+
+# Packaging output
+*.intunewin
