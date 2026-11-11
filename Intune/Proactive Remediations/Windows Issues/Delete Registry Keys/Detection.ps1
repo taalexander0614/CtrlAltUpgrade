@@ -93,7 +93,7 @@ $keyPaths | ForEach-Object {
     }
 }
 
-$keyCounter = $null
+$keyCounter = 0
 
 foreach ($keyPath in $keyPaths) {
     Write-Log -Level "DEBUG" -Message "Checking for $keyPath"
@@ -107,13 +107,13 @@ foreach ($keyPath in $keyPaths) {
 
 }
 
-if ($keyCounter -ne $null) {
+if ($keyCounter -gt 0) {
     Write-Log -Level "INFO" -Message "$keyCounter keys found; Run Remediation"
     Write-Log -Level "INFO" -Message "====================== End $scriptName Detection Log ======================"
-    return 1
+    exit 1
 }
 else {
     Write-Log -Level "INFO" -Message "No keys found"
     Write-Log -Level "INFO" -Message "====================== End $scriptName Detection Log ======================"
-    return 0
+    exit 0
 }

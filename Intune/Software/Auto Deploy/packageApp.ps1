@@ -61,11 +61,8 @@ function Invoke-IntuneWinPackager {
         New-Item -ItemType Directory -Path $OutputFolder | Out-Null
     }
 
-    # Build the command to package the installer
-    $CommandLine = "$IntuneWinAppUtilPath -c $InstallerFolder -s $InstallerPath -o $OutputFolder"
-
-    # Execute the command
-    Invoke-Expression $CommandLine
+    # Package the installer (call operator instead of Invoke-Expression, so paths with spaces work)
+    & $IntuneWinAppUtilPath -c $InstallerFolder -s $InstallerPath -o $OutputFolder
 
     Write-Host "Installer packaged successfully. IntuneWin file created in: $OutputFolder"
 }

@@ -39,11 +39,11 @@ https://github.com/taalexander0614/CtrlAltUpgrade
 
 param(
     [Parameter(Mandatory=$true)]
-    [string]$tenant = "",
+    [string]$tenant,
     [Parameter(Mandatory=$true)]
-    [string]$appID ="",
+    [string]$appID,
     [Parameter(Mandatory=$true)]
-    [string]$secret = "",
+    [string]$secret,
     [Parameter(Mandatory=$false)]
     [string]$displayName,
     [Parameter(Mandatory=$false)]

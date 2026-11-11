@@ -81,8 +81,8 @@ Write-Log -Level "INFO" -Message "====================== Start $scriptName Log =
 # Check for any accounts found on system before running script
 $startingProfileNames = @()
 $profiles = Get-ChildItem -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" -ErrorAction SilentlyContinue | Where-Object { $_.PSChildName -like "S-1-5-21-*" }   
-foreach ($profile in $profiles) {
-    $profileImagePath = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$($profile.PSChildName)" -Name ProfileImagePath | Select-Object -ExpandProperty ProfileImagePath
+foreach ($profileKey in $profiles) {
+    $profileImagePath = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$($profileKey.PSChildName)" -Name ProfileImagePath | Select-Object -ExpandProperty ProfileImagePath
     $startingprofilenames += $profileImagePath -replace "C:\\Users\\", ""
 }
 Write-Log -Level "INFO" -Message "The accounts present on device: $startingProfileNames."
