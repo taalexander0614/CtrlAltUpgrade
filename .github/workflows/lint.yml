@@ -1,0 +1,50 @@
+name: Lint
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  powershell:
+    name: PowerShell (PSScriptAnalyzer)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error, Warning
+          $results | Sort-Object ScriptPath, Line |
+            Format-Table Severity, RuleName, @{n='File';e={Resolve-Path -Relative $_.ScriptPath}}, Line -AutoSize | Out-String -Width 220 | Write-Host
+          $errors = @($results | Where-Object Severity -eq 'Error')
+          Write-Host "Errors: $($errors.Count)  Warnings: $(@($results | Where-Object Severity -eq 'Warning').Count)"
+          # Only errors fail the build; warnings are shown for cleanup over time.
+          if ($errors.Count -gt 0) { exit 1 }
+
+  shell:
+    name: Shell (ShellCheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ShellCheck (errors fail, warnings shown)
+        run: |
+          find . -name '*.sh' -not -path './.git/*' -print0 | xargs -0 -r shellcheck -S warning || true
+          find . -name '*.sh' -not -path './.git/*' -print0 | xargs -0 -r shellcheck -S error
+
+  other:
+    name: YAML and JavaScript syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: YAML parses
+        run: |
+          python3 -c "import pathlib,yaml; fs=[f for f in pathlib.Path('.').rglob('*.yml') if '.git' not in f.parts]; [yaml.safe_load(f.read_text()) for f in fs]; print(len(fs), 'files ok')"
+      - name: JavaScript parses
+        run: |
+          find . -name '*.js' -not -path './.git/*' -print0 | xargs -0 -r -n1 node --check
