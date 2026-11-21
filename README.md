@@ -36,6 +36,7 @@ Everything here comes from real use in a school district and has been sanitized:
 |---|---|
 | [Linux Server Baseline](Ansible/Linux%20Server%20Baseline/) | Re-runnable Ansible baseline for Ubuntu: certificates, SSH, time, updates, Wazuh and Zabbix agents. [Write-up](https://www.ctrlaltupgrade.com/blog/linux-server-baseline-ansible/). |
 | [Phishing Triage Score](n8n/Phishing%20Triage%20Score/) | Rule-based score for user-reported phishing in n8n, with a plain-language reason for every point. [Write-up](https://www.ctrlaltupgrade.com/blog/phishing-triage-score/). |
+| [Palo Alto Unblocked Threats](Wazuh/Palo%20Alto%20Unblocked%20Threats/) | Wazuh rules that alert only on firewall threats that got through and on sinkholed DNS lookups, with repeats folded into one alert. [Write-up](https://www.ctrlaltupgrade.com/blog/firewall-threats-that-got-through/). |
 
 ## Conventions
 - **Variables at the top.** Each script starts with the values you change: organization name, URLs, tenant and app IDs.

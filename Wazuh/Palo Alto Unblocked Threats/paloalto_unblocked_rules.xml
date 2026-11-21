@@ -1,0 +1,59 @@
+<!--
+  Wazuh rules: alert only on Palo Alto Threat logs that need a person.
+
+  100200 (level 12): a high or critical threat the firewall did NOT block (action alert, allow, etc.).
+  100201 (level 3):  the same threat on the same destination again within an hour (stored, not sent).
+  100202 (level 12): a DNS lookup the firewall sinkholed, any severity. The lookup was stopped,
+                     but the device that asked may be infected.
+  100203 (level 3):  the same signature from the same source again within 24 hours (stored, not sent).
+
+  CONFIG
+  - Rule IDs: 100200-100203 are in Wazuh's custom range. Change them if they clash with your own rules.
+  - Parent rules 64501-64504 are the built-in Wazuh Palo Alto Threat rules (by severity).
+    Check them against the ruleset that ships with your Wazuh version before installing.
+  - Level 12 is the level my integration forwards. Use whatever level your integration or email alerts use.
+
+  "Not a block" is written as a negated list of blocking actions, so an action PAN-OS adds later
+  counts as not blocked and fails toward an alert instead of silence.
+-->
+<group name="local,paloalto,">
+
+  <rule id="100200" level="12">
+    <if_sid>64503,64504</if_sid>
+    <field name="type">^THREAT$</field>
+    <action type="pcre2" negate="yes">(?i)^(?:drop|drop-all|drop-all-packets|reset-client|reset-server|reset-both|block-url|block-ip|block-continue|block-override|deny|sinkhole|random-drop|syncookie-sent)$</action>
+    <description>Palo Alto: $(severity) threat was not blocked (action $(action)): $(threat_id)</description>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+    <group>paloalto_unblocked,</group>
+  </rule>
+
+  <rule id="100201" level="3" frequency="2" timeframe="3600">
+    <if_matched_sid>100200</if_matched_sid>
+    <same_field>threat_id</same_field>
+    <same_field>destination_address</same_field>
+    <description>Palo Alto: repeat of an unblocked $(severity) threat within an hour: $(threat_id)</description>
+    <group>paloalto_unblocked_repeat,</group>
+  </rule>
+
+  <rule id="100202" level="12">
+    <if_sid>64501,64502,64503,64504</if_sid>
+    <field name="type">^THREAT$</field>
+    <action type="pcre2">(?i)^sinkhole$</action>
+    <description>Palo Alto: DNS lookup for a malicious domain was sinkholed, the source may be infected: $(threat_id)</description>
+    <mitre>
+      <id>T1071.004</id>
+    </mitre>
+    <group>paloalto_sinkhole,</group>
+  </rule>
+
+  <rule id="100203" level="3" frequency="2" timeframe="86400">
+    <if_matched_sid>100202</if_matched_sid>
+    <same_field>threat_id</same_field>
+    <same_field>source_address</same_field>
+    <description>Palo Alto: repeat of a sinkholed DNS lookup within 24 hours: $(threat_id)</description>
+    <group>paloalto_sinkhole_repeat,</group>
+  </rule>
+
+</group>
